@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/meta-controller-output.schema.json",
+  "title": "MetaControllerOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_classification",
+    "controller_decision",
+    "findings",
+    "materiality_ranked",
+    "capability_trace",
+    "unresolved",
+    "adequacy_status",
+    "stop_condition"
+  ],
+  "properties": {
+    "task_classification": {
+      "$ref": "#/$defs/TaskClassification"
+    },
+    "controller_decision": {
+      "$ref": "#/$defs/ControllerDecision"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Finding"
+      }
+    },
+    "materiality_ranked": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Finding"
+      }
+    },
+    "capability_trace": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/CapabilityTraceItem"
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/UnresolvedItem"
+      }
+    },
+    "adequacy_status": {
+      "type": "string",
+      "enum": ["adequate", "inadequate", "partially_adequate", "escalated"]
+    },
+    "stop_condition": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "TaskType": {
+      "type": "string",
+      "enum": [
+        "statutory_text",
+        "legal_argument",
+        "correspondence",
+        "argument",
+        "narrative",
+        "evidentiary_document",
+        "persuasive_submission",
+        "technical_instructions",
+        "technical_text",
+        "mixed"
+      ]
+    },
+    "DominantRisk": {
+      "type": "string",
+      "enum": [
+        "ambiguity",
+        "hidden_premise",
+        "contradiction",
+        "evidentiary_gap",
+        "rhetorical_manipulation",
+        "coherence_failure",
+        "misapplied_authority",
+        "strategic_objective_miss",
+        "unknown"
+      ]
+    },
+    "RequiredOutputType": {
+      "type": "string",
+      "enum": [
+        "defect_map",
+        "argument_scaffold",
+        "rewrite",
+        "comparison_matrix",
+        "forensic_report",
+        "cross_examination_targets",
+        "summary",
+        "analysis",
+        "other"
+      ]
+    },
+    "Capability": {
+      "type": "string",
+      "enum": [
+        "ambiguity_scan",
+        "implicit_premise_extraction",
+        "rhetorical_move_mapping",
+        "pragmatic_inference",
+        "coherence_graph",
+        "semantic_density_control",
+        "register_detection",
+        "stylometry",
+        "contradiction_detection",
+        "burden_mapping",
+        "jurisdictional_precondition_check",
+        "evidence_source_tracing",
+        "adversarial_simulation",
+        "materiality_filter",
+        "remedy_mapping"
+      ]
+    },
+    "DepthSetting": {
+      "type": "string",
+      "enum": ["shallow", "standard", "forensic", "exhaustive"]
+    },
+    "ConfidenceThreshold": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "strict"]
+    },
+    "Materiality": {
+      "type": "string",
+      "enum": ["fatal", "high", "medium", "low", "noise"]
+    },
+    "TaskClassification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objective",
+        "task_type",
+        "dominant_risk",
+        "required_output_type"
+      ],
+      "properties": {
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_type": {
+          "$ref": "#/$defs/TaskType"
+        },
+        "dominant_risk": {
+          "$ref": "#/$defs/DominantRisk"
+        },
+        "required_output_type": {
+          "$ref": "#/$defs/RequiredOutputType"
+        }
+      }
+    },
+    "ControllerDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selected_capabilities",
+        "rejected_capabilities",
+        "sequence_rationale",
+        "depth_setting",
+        "confidence_threshold",
+        "stopping_rule",
+        "escalation_rules"
+      ],
+      "properties": {
+        "selected_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "uniqueItems": true
+        },
+        "rejected_capabilities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "uniqueItems": true
+        },
+        "sequence_rationale": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "depth_setting": {
+          "$ref": "#/$defs/DepthSetting"
+        },
+        "confidence_threshold": {
+          "$ref": "#/$defs/ConfidenceThreshold"
+        },
+        "stopping_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "escalation_rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "content", "materiality"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "materiality": {
+          "$ref": "#/$defs/Materiality"
+        },
+        "capability_source": {
+          "$ref": "#/$defs/Capability"
+        },
+        "confidence": {
+          "$ref": "#/$defs/ConfidenceThreshold"
+        }
+      }
+    },
+    "CapabilityTraceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capability", "status"],
+      "properties": {
+        "capability": {
+          "$ref": "#/$defs/Capability"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["executed", "skipped", "blocked", "failed", "escalated"]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "UnresolvedItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["issue"],
+      "properties": {
+        "issue": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "$ref": "#/$defs/Materiality"
+        },
+        "recommended_escalation": {
+          "$ref": "#/$defs/Capability"
+        }
+      }
+    }
+  }
+}
