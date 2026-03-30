@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/controller-decision.schema.json",
+  "title": "ControllerDecision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "selected_capabilities",
+    "rejected_capabilities",
+    "sequence_rationale",
+    "depth_setting",
+    "confidence_threshold",
+    "stopping_rule",
+    "escalation_rules"
+  ],
+  "properties": {
+    "selected_capabilities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "ambiguity_scan",
+          "implicit_premise_extraction",
+          "rhetorical_move_mapping",
+          "pragmatic_inference",
+          "coherence_graph",
+          "semantic_density_control",
+          "register_detection",
+          "stylometry",
+          "contradiction_detection",
+          "burden_mapping",
+          "jurisdictional_precondition_check",
+          "evidence_source_tracing",
+          "adversarial_simulation",
+          "materiality_filter",
+          "remedy_mapping"
+        ]
+      }
+    },
+    "rejected_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "ambiguity_scan",
+          "implicit_premise_extraction",
+          "rhetorical_move_mapping",
+          "pragmatic_inference",
+          "coherence_graph",
+          "semantic_density_control",
+          "register_detection",
+          "stylometry",
+          "contradiction_detection",
+          "burden_mapping",
+          "jurisdictional_precondition_check",
+          "evidence_source_tracing",
+          "adversarial_simulation",
+          "materiality_filter",
+          "remedy_mapping"
+        ]
+      }
+    },
+    "sequence_rationale": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "depth_setting": {
+      "type": "string",
+      "enum": ["shallow", "standard", "forensic", "exhaustive"]
+    },
+    "confidence_threshold": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "strict"]
+    },
+    "stopping_rule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "escalation_rules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
