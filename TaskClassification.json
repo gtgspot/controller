@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/task-classification.schema.json",
+  "title": "TaskClassification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "objective",
+    "task_type",
+    "dominant_risk",
+    "required_output_type"
+  ],
+  "properties": {
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "statutory_text",
+        "legal_argument",
+        "correspondence",
+        "argument",
+        "narrative",
+        "evidentiary_document",
+        "persuasive_submission",
+        "technical_instructions",
+        "technical_text",
+        "mixed"
+      ]
+    },
+    "dominant_risk": {
+      "type": "string",
+      "enum": [
+        "ambiguity",
+        "hidden_premise",
+        "contradiction",
+        "evidentiary_gap",
+        "rhetorical_manipulation",
+        "coherence_failure",
+        "misapplied_authority",
+        "strategic_objective_miss",
+        "unknown"
+      ]
+    },
+    "required_output_type": {
+      "type": "string",
+      "enum": [
+        "defect_map",
+        "argument_scaffold",
+        "rewrite",
+        "comparison_matrix",
+        "forensic_report",
+        "cross_examination_targets",
+        "summary",
+        "analysis",
+        "other"
+      ]
+    }
+  }
+}
