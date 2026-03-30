@@ -1,0 +1,765 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/capabilities.schema.json",
+  "title": "CapabilityDefinitions",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ambiguity_scan",
+    "implicit_premise_extraction",
+    "rhetorical_move_mapping",
+    "pragmatic_inference",
+    "coherence_graph",
+    "semantic_density_control",
+    "register_detection",
+    "stylometry",
+    "contradiction_detection",
+    "burden_mapping",
+    "jurisdictional_precondition_check",
+    "evidence_source_tracing",
+    "adversarial_simulation",
+    "materiality_filter",
+    "remedy_mapping"
+  ],
+  "properties": {
+    "ambiguity_scan": { "$ref": "#/$defs/AmbiguityScanCapability" },
+    "implicit_premise_extraction": { "$ref": "#/$defs/ImplicitPremiseExtractionCapability" },
+    "rhetorical_move_mapping": { "$ref": "#/$defs/RhetoricalMoveMappingCapability" },
+    "pragmatic_inference": { "$ref": "#/$defs/PragmaticInferenceCapability" },
+    "coherence_graph": { "$ref": "#/$defs/CoherenceGraphCapability" },
+    "semantic_density_control": { "$ref": "#/$defs/SemanticDensityControlCapability" },
+    "register_detection": { "$ref": "#/$defs/RegisterDetectionCapability" },
+    "stylometry": { "$ref": "#/$defs/StylometryCapability" },
+    "contradiction_detection": { "$ref": "#/$defs/ContradictionDetectionCapability" },
+    "burden_mapping": { "$ref": "#/$defs/BurdenMappingCapability" },
+    "jurisdictional_precondition_check": { "$ref": "#/$defs/JurisdictionalPreconditionCheckCapability" },
+    "evidence_source_tracing": { "$ref": "#/$defs/EvidenceSourceTracingCapability" },
+    "adversarial_simulation": { "$ref": "#/$defs/AdversarialSimulationCapability" },
+    "materiality_filter": { "$ref": "#/$defs/MaterialityFilterCapability" },
+    "remedy_mapping": { "$ref": "#/$defs/RemedyMappingCapability" }
+  },
+  "$defs": {
+    "CapabilityBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capability",
+        "description",
+        "inputs",
+        "outputs",
+        "constraints",
+        "failure_modes"
+      ],
+      "properties": {
+        "capability": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "failure_modes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+
+    "AmbiguityScanCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "ambiguity_scan" },
+            "description": {
+              "const": "Detects and classifies ambiguity in text, including lexical, syntactic, referential, and scope ambiguity."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "task_context",
+                "materiality_threshold"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "ambiguity_items",
+                "ambiguity_types",
+                "resolution_status",
+                "materiality_ranking"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish material ambiguity from trivial ambiguity",
+                "Must not treat ambiguity as defect unless contextually consequential",
+                "Must either resolve, preserve, or flag each material ambiguity"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Missing high-impact ambiguity",
+                "Over-flagging low-value ambiguity",
+                "Premature resolution of strategically useful ambiguity"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "ImplicitPremiseExtractionCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "implicit_premise_extraction" },
+            "description": {
+              "const": "Extracts unstated premises required to support explicit claims, including logically necessary and jurisdictional premises."
+            },
+            "inputs": {
+              "const": [
+                "claims",
+                "text",
+                "task_objective",
+                "legal_or_argument_context"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "premise_items",
+                "necessity_levels",
+                "unsupported_claim_links",
+                "jurisdictional_dependencies"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish possible premise from necessary premise",
+                "Must not invent hidden premises without inferential basis",
+                "Must flag jurisdictional or legally mandatory premises separately"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Hallucinated hidden premise",
+                "Failure to detect decisive unstated premise",
+                "Conflation of rhetorical implication with logical necessity"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "RhetoricalMoveMappingCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "rhetorical_move_mapping" },
+            "description": {
+              "const": "Identifies rhetorical operations within text, such as concession, framing, deflection, escalation, qualification, authority appeal, and premature closure."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "argument_segments",
+                "communicative_context"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "rhetorical_move_items",
+                "move_sequence",
+                "functional_effects",
+                "manipulation_signals"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Each rhetorical label must be tied to a textual trigger",
+                "Each rhetorical label must state its function",
+                "Must distinguish rhetoric from substantive reasoning where possible"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Over-labelling neutral prose",
+                "Mistaking structure for manipulation",
+                "Missing burden-shifting or framing moves"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "PragmaticInferenceCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "pragmatic_inference" },
+            "description": {
+              "const": "Infers implied meaning from communicative behaviour, including omission, hedging, redirection, vagueness, and Gricean maxim violations."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "speaker_context",
+                "audience_context",
+                "conversational_expectations"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "pragmatic_inference_items",
+                "trigger_points",
+                "confidence_levels",
+                "maxim_violation_signals"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "All pragmatic inferences must be marked as inferential rather than factual",
+                "Must identify trigger language or omission basis",
+                "Must not overstate speculative meaning"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Treating inference as fact",
+                "Ignoring silence or omission as communicatively meaningful",
+                "Over-reading accidental vagueness"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "CoherenceGraphCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "coherence_graph" },
+            "description": {
+              "const": "Builds a structural dependency map showing how claims, sections, and transitions relate across a text."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "section_structure",
+                "claims",
+                "dependencies"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "coherence_nodes",
+                "coherence_edges",
+                "dependency_gaps",
+                "transition_failures",
+                "global_status"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must test both local and global coherence",
+                "Must identify missing support links between sections",
+                "Must distinguish contradiction from mere weak transition"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Missing global inconsistency",
+                "Overstating minor transition weakness",
+                "Failing to map dependency gaps"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "SemanticDensityControlCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "semantic_density_control" },
+            "description": {
+              "const": "Measures and adjusts how much meaning is packed into sentences and passages to suit the communicative objective."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "target_density_band",
+                "audience_type",
+                "communication_goal"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "density_profile",
+                "compressed_version",
+                "expanded_version",
+                "overcompression_flags"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must not increase ambiguity while increasing density",
+                "Must not oversimplify where precision is required",
+                "Must preserve logical separability of independent claims"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Over-compression causing ambiguity",
+                "Unnecessary expansion reducing force",
+                "Merging independent propositions into one unstable sentence"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "RegisterDetectionCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "register_detection" },
+            "description": {
+              "const": "Detects the linguistic register and tone of text and recommends or applies register shifts where strategically appropriate."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "audience",
+                "domain_context",
+                "desired_effect"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "register_profile",
+                "tone_profile",
+                "formality_level",
+                "recommended_register_shift"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish tone from register",
+                "Must tie recommended shifts to communicative purpose",
+                "Must not produce incoherent mixed-register output without justification"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Misclassifying bureaucratic or legal register",
+                "Tone inconsistency after shift",
+                "Strategically counterproductive code-switching"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "StylometryCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "stylometry" },
+            "description": {
+              "const": "Quantifies style features such as sentence length, lexical variety, syntactic complexity, punctuation density, and voice patterns."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "comparison_texts",
+                "target_style_profile"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "style_metrics",
+                "comparative_profile",
+                "consistency_assessment",
+                "authorship_similarity_signals"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must treat stylometric similarity as probabilistic",
+                "Must not equate style match with authorship certainty",
+                "Must preserve substantive clarity over stylistic mimicry"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Overclaiming authorship linkage",
+                "Optimising style over meaning",
+                "Using unstable metrics on too-small samples"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "ContradictionDetectionCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "contradiction_detection" },
+            "description": {
+              "const": "Detects internal contradiction, cross-document contradiction, and contradiction between claim and supporting basis."
+            },
+            "inputs": {
+              "const": [
+                "text",
+                "claims",
+                "supporting_material",
+                "comparison_material"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "contradiction_items",
+                "severity_ranking",
+                "resolution_status",
+                "affected_claims"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish contradiction from tension or incompleteness",
+                "Must tie contradiction to specific statements or propositions",
+                "Must classify severity"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Mistaking nuance for contradiction",
+                "Missing decisive inconsistency",
+                "Failing to distinguish local from structural contradiction"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "BurdenMappingCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "burden_mapping" },
+            "description": {
+              "const": "Maps propositions to the party bearing the burden, including burden type and standard where relevant."
+            },
+            "inputs": {
+              "const": [
+                "propositions",
+                "legal_context",
+                "argument_structure"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "burden_map_items",
+                "burden_holder_assignments",
+                "standard_assignments",
+                "burden_shift_flags"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must separate assertion from proof burden",
+                "Must flag attempted or concealed burden shifting",
+                "Must not assign burden without contextual basis"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Incorrect burden allocation",
+                "Missing hidden burden shift",
+                "Failing to distinguish evidential from legal burden"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "JurisdictionalPreconditionCheckCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "jurisdictional_precondition_check" },
+            "description": {
+              "const": "Checks whether required legal or structural preconditions for a power, decision, or conclusion are satisfied, assumed, missing, or contested."
+            },
+            "inputs": {
+              "const": [
+                "power_or_claim",
+                "legal_framework",
+                "evidence",
+                "text"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "precondition_items",
+                "status_assignments",
+                "missing_preconditions",
+                "invalidity_risk_flags"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish jurisdictional precondition from ordinary supporting fact",
+                "Must identify assumed-but-unproven preconditions",
+                "Must not collapse legal invalidity into mere weakness"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Missing fatal missing precondition",
+                "Treating supportive evidence as sufficient precondition proof",
+                "Failing to separate contested from absent conditions"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "EvidenceSourceTracingCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "evidence_source_tracing" },
+            "description": {
+              "const": "Traces each claim to its evidentiary basis and classifies the grounding source and strength."
+            },
+            "inputs": {
+              "const": [
+                "claims",
+                "record_material",
+                "source_documents",
+                "narrative_text"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "evidence_source_items",
+                "grounding_statuses",
+                "unsupported_claims",
+                "source_type_classifications"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must distinguish direct evidence from inference",
+                "Must distinguish weak grounding from no grounding",
+                "Must not allow source opacity to pass unflagged"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "False attribution of support",
+                "Failure to detect unsupported assertion",
+                "Conflation of hearsay, inference, and direct observation"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "AdversarialSimulationCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "adversarial_simulation" },
+            "description": {
+              "const": "Generates the strongest plausible opposing response to test the robustness of current analysis or argument."
+            },
+            "inputs": {
+              "const": [
+                "current_findings",
+                "objective",
+                "opposing_position",
+                "context_constraints"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "counterarguments",
+                "vulnerability_points",
+                "robustness_assessment",
+                "recommended_reinforcements"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must simulate strongest plausible counter-position rather than a weak strawman",
+                "Must preserve distinction between likely and speculative counters",
+                "Must tie vulnerabilities to actual dependencies in the current analysis"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Generating weak opposition",
+                "Missing decisive rebuttal pathway",
+                "Overstating speculative vulnerabilities"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "MaterialityFilterCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "materiality_filter" },
+            "description": {
+              "const": "Ranks findings by practical or legal consequence and suppresses low-value analytical noise."
+            },
+            "inputs": {
+              "const": [
+                "findings",
+                "objective",
+                "decision_context",
+                "stakes"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "materiality_ranked_findings",
+                "fatal_findings",
+                "supportive_findings",
+                "suppressed_noise"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must rank by outcome impact rather than mere interestingness",
+                "Must not bury fatal findings under peripheral observations",
+                "Must preserve supportive findings that strengthen decisive defects"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Elevating cosmetic issues",
+                "Missing decisive issue",
+                "Over-pruning corroborative findings"
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "RemedyMappingCapability": {
+      "allOf": [
+        { "$ref": "#/$defs/CapabilityBase" },
+        {
+          "type": "object",
+          "properties": {
+            "capability": { "const": "remedy_mapping" },
+            "description": {
+              "const": "Maps identified findings to appropriate responses, remedies, procedural actions, or drafting strategies."
+            },
+            "inputs": {
+              "const": [
+                "findings",
+                "objective",
+                "available_actions",
+                "context"
+              ]
+            },
+            "outputs": {
+              "const": [
+                "remedy_options",
+                "recommended_action_paths",
+                "action_rationales",
+                "priority_order"
+              ]
+            },
+            "constraints": {
+              "const": [
+                "Must tie each remedy to a specific finding or cluster of findings",
+                "Must distinguish mandatory response from optional strategic response",
+                "Must not recommend action unsupported by the findings"
+              ]
+            },
+            "failure_modes": {
+              "const": [
+                "Action not grounded in defect",
+                "Failure to prioritise strongest remedy",
+                "Conflating procedural remedy with rhetorical improvement"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
