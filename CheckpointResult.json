@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/checkpoint-result.schema.json",
+  "title": "CheckpointResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["integrity", "logical_sufficiency", "objective_relevance", "material_adequacy"],
+  "properties": {
+    "integrity": {
+      "$ref": "#/$defs/CheckpointStatus"
+    },
+    "logical_sufficiency": {
+      "$ref": "#/$defs/CheckpointStatus"
+    },
+    "objective_relevance": {
+      "$ref": "#/$defs/CheckpointStatus"
+    },
+    "material_adequacy": {
+      "$ref": "#/$defs/CheckpointStatus"
+    }
+  },
+  "$defs": {
+    "CheckpointStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed"],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
