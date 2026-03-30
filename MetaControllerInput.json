@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/meta-controller-input.schema.json",
+  "title": "MetaControllerInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requested_output_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
