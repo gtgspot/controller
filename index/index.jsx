@@ -1,0 +1,546 @@
+import { useState, useRef, useCallback, useEffect } from "react";
+
+// ═══════════════════════════════════════════════════════════════════
+// CONFIGURATION — LLM Response Evaluation Matrix v1.0
+// Sourced from ChatGPT conversation: 8-dimension weighted scoring,
+// failure mode detection, domain routing, adjudication logic
+// ═══════════════════════════════════════════════════════════════════
+
+const EVAL_DIMENSIONS = [
+  { name: "instruction_fidelity", label: "Instruction Fidelity", weight: 15, question: "Did the model follow the task exactly?" },
+  { name: "epistemic_integrity", label: "Epistemic Integrity", weight: 20, question: "Is the response truthful, disciplined, and uncertainty-aware?" },
+  { name: "reasoning_quality", label: "Reasoning Quality", weight: 20, question: "Is the reasoning valid, layered, and discriminative?" },
+  { name: "evidence_mapping", label: "Evidence Mapping", weight: 15, question: "Are claims grounded in provided data?" },
+  { name: "structural_clarity", label: "Structural Clarity", weight: 10, question: "Is the output well-organised and cognitively parsable?" },
+  { name: "technical_precision", label: "Technical Precision", weight: 10, question: "Is the language and terminology precise?" },
+  { name: "actionability", label: "Actionability", weight: 5, question: "Can the output be used immediately?" },
+  { name: "risk_awareness", label: "Risk Awareness", weight: 5, question: "Does the model account for misdiagnosis or failure?" },
+];
+
+const FAILURE_MODES = [
+  "hallucination", "overgeneralisation", "instruction_drift", "causal_collapse",
+  "ambiguity_blindness", "redundancy", "unsupported_claim", "speculation_as_fact",
+  "jurisdictional_misclassification", "authority_misstatement", "citation_failure",
+  "missing_counterargument", "missing_falsifiability", "conflation_of_observation_and_inference"
+];
+
+const VERDICT_MAP = [
+  { min: 4.5, label: "Production-grade", color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
+  { min: 3.8, label: "Strong", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+  { min: 3.0, label: "Acceptable", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  { min: 2.0, label: "Weak", color: "#f97316", bg: "rgba(249,115,22,0.1)" },
+  { min: 0, label: "Unusable", color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
+];
+
+const DOMAIN_PROFILES = {
+  technical: {
+    label: "Technical",
+    system_augment: `Apply technical reasoning discipline:
+- Separate observations from inferences from speculation explicitly
+- Rank hypotheses by confidence with mechanism explanations
+- Provide validation tests for each hypothesis
+- Flag misdiagnosis risks
+- No generic troubleshooting — discriminating analysis only`,
+    eval_augment: `Additional technical criteria: observation/inference separation, hypothesis ranking, validation tests, misdiagnosis risks.`
+  },
+  legal: {
+    label: "Legal",
+    system_augment: `Apply legal reasoning discipline:
+- Map each proposition to a governing source of law (statute, regulation, case law)
+- Distinguish between statute, regulation, case law, policy, and assumption
+- Check jurisdictional preconditions
+- Identify counterarguments
+- Map remedies to causes of action
+- Cite with pinpoint references (Act, section, subsection)`,
+    eval_augment: `Additional legal criteria: source-of-law mapping, statute/regulation/case-law distinction, jurisdictional preconditions, counterarguments, pinpoint citations.`
+  },
+  reasoning_heavy: {
+    label: "Reasoning",
+    system_augment: `Apply rigorous reasoning discipline:
+- Audit every substantive claim (observation/inference/speculation/conclusion/recommendation)
+- Require competing explanations where multiple exist
+- Disclose uncertainty explicitly
+- Scan for failure modes: hallucination, causal collapse, overgeneralisation
+- Provide confidence scores with justification`,
+    eval_augment: `Additional reasoning criteria: claim typing, competing explanations, uncertainty disclosure, confidence justification.`
+  },
+  mixed: {
+    label: "Auto-detect",
+    system_augment: `Apply comprehensive reasoning discipline:
+- Separate observations from inferences from speculation
+- Ground claims in evidence; flag unsupported assertions
+- Consider competing explanations
+- Disclose uncertainty explicitly
+- If legal elements present, cite governing provisions
+- Provide actionable next steps
+- Flag risks of wrong conclusions`,
+    eval_augment: `Evaluate across all domains with strictest applicable standard.`
+  }
+};
+
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const OPENAI_MODEL = "gpt-4o";
+
+// ═══════════════════════════════════════════════════════════════════
+// SYSTEM PROMPTS
+// ═══════════════════════════════════════════════════════════════════
+
+function buildSpecialistPrompt(domain) {
+  const p = DOMAIN_PROFILES[domain] || DOMAIN_PROFILES.mixed;
+  return `You are a senior domain expert providing rigorous, expert-grade analysis.
+
+Core requirements:
+- Every sentence advances understanding or action. Zero filler.
+- Distinguish clearly between observations, inferences, and speculation.
+- Where multiple explanations exist, compare them.
+- Be concise but technically dense.
+- If uncertain, say exactly why.
+- Do not assume facts not in evidence.
+- Do not give generic advice.
+
+${p.system_augment}
+
+Structure your response with clear sections. End with a confidence assessment.`;
+}
+
+const EVALUATOR_SYSTEM = `You are an adversarial evaluation engine implementing the LLM Response Evaluation Matrix v1.0.
+
+You receive two anonymised responses (A and B) and a task domain.
+
+SCORING: Score each dimension 0-5 for EACH response.
+0=Absent/incorrect, 1=Severely flawed, 2=Weak, 3=Adequate, 4=Strong, 5=Expert-grade
+
+DIMENSIONS (weights): instruction_fidelity(15), epistemic_integrity(20), reasoning_quality(20), evidence_mapping(15), structural_clarity(10), technical_precision(10), actionability(5), risk_awareness(5)
+
+FAILURE MODES to scan: hallucination, overgeneralisation, instruction_drift, causal_collapse, ambiguity_blindness, redundancy, unsupported_claim, speculation_as_fact, missing_counterargument, missing_falsifiability, conflation_of_observation_and_inference, jurisdictional_misclassification, authority_misstatement, citation_failure
+
+AUTO-FAIL: fabricated facts→unusable, invented citation→unusable, contradicts supplied facts→needs_revision, repeated speculation as fact→needs_revision
+
+WEIGHTED SCORE = sum(score_i × weight_i/100). Verdict: >=4.5 production_grade, >=3.8 strong, >=3.0 acceptable, >=2.0 weak, <2.0 unusable
+
+ADJUDICATION: 1) exclude auto-fails, 2) rank by weighted score, 3) break ties by fewer critical failures, then epistemic integrity, then reasoning quality
+
+Respond ONLY in valid JSON (no fences):
+{
+  "domain_detected": "technical|legal|reasoning_heavy|mixed",
+  "response_a": {
+    "dimensions": [{"name":"...", "score": N, "rationale":"..."}],
+    "weighted_score": N,
+    "failure_modes": [{"name":"...", "detected": bool, "severity":"low|medium|high|critical", "rationale":"..."}],
+    "verdict": "production_grade|strong|acceptable|weak|unusable|needs_revision",
+    "key_strengths": ["..."],
+    "critical_failures": ["..."]
+  },
+  "response_b": { "...same..." },
+  "contradictions": [{"point":"...", "a_says":"...", "b_says":"...", "resolution":"..."}],
+  "gaps_both_missed": ["..."],
+  "follow_up_needed": {"needed": bool, "query": "..."},
+  "overall_winner": "A|B|tie",
+  "adjudication_rationale": "...",
+  "confidence": 0-100
+}`;
+
+function buildSynthesisPrompt(domain) {
+  const p = DOMAIN_PROFILES[domain] || DOMAIN_PROFILES.mixed;
+  return `You are a synthesis engine producing a single expert-grade output from multi-model evaluation.
+
+You receive: original query, Response A, Response B, structured matrix evaluation with per-dimension scores and failure modes, and optionally follow-up research.
+
+Produce ONE definitive response:
+1. Take strongest elements based on dimension scores
+2. Resolve contradictions per evaluation analysis
+3. Fill identified gaps
+4. Incorporate follow-up research if present
+5. Maintain ${p.label} domain discipline
+6. Direct, actionable, expert-grade
+7. Append "Dissent Notes" if material disagreement exists
+
+Do NOT reference "Response A"/"Response B". Single authoritative voice.
+Exclude content from any auto-failed response.`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════════
+
+async function callClaude(msgs, sys, max = 4096) {
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: max, system: sys, messages: msgs }),
+  });
+  if (!r.ok) throw new Error(`Claude ${r.status}: ${await r.text()}`);
+  const d = await r.json();
+  return d.content.map(b => b.type === "text" ? b.text : "").join("\n").trim();
+}
+
+async function callOpenAI(key, msgs, sys, max = 4096) {
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model: OPENAI_MODEL, max_tokens: max, messages: [{ role: "system", content: sys }, ...msgs] }),
+  });
+  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${await r.text()}`);
+  const d = await r.json();
+  return d.choices?.[0]?.message?.content?.trim() || "";
+}
+
+function getVerdict(score) {
+  for (const v of VERDICT_MAP) { if ((score || 0) >= v.min) return v; }
+  return VERDICT_MAP[VERDICT_MAP.length - 1];
+}
+
+const STAGES = [
+  { id: "classify", label: "Domain", icon: "◉" },
+  { id: "dispatch", label: "Dispatch", icon: "⚡" },
+  { id: "evaluate", label: "Matrix Eval", icon: "⚖" },
+  { id: "followup", label: "Follow-up", icon: "🔍" },
+  { id: "synthesize", label: "Synthesis", icon: "◈" },
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════
+
+export default function DualAIEngine() {
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [keySet, setKeySet] = useState(false);
+  const [query, setQuery] = useState("");
+  const [domain, setDomain] = useState("mixed");
+  const [isRunning, setIsRunning] = useState(false);
+  const [stage, setStage] = useState(-1);
+  const [sr, setSr] = useState({});
+  const [output, setOutput] = useState("");
+  const [showBB, setShowBB] = useState(false);
+  const [showSC, setShowSC] = useState(false);
+  const [err, setErr] = useState("");
+  const [hist, setHist] = useState([]);
+  const [tab, setTab] = useState("query");
+  const outRef = useRef(null);
+
+  useEffect(() => { if (output && outRef.current) outRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, [output]);
+
+  const run = useCallback(async () => {
+    if (!query.trim() || !openaiKey.trim()) return;
+    setIsRunning(true); setErr(""); setOutput(""); setSr({}); setStage(0); setShowBB(false); setShowSC(false);
+    const t0 = Date.now();
+    try {
+      // Classify
+      let dom = domain;
+      if (domain === "mixed") {
+        const cl = await callClaude([{ role: "user", content: `Classify into exactly one: technical, legal, reasoning_heavy, mixed. One word only.\n\n${query}` }], "Task classifier. One word.", 20);
+        const d = cl.trim().toLowerCase().replace(/[^a-z_]/g, "");
+        if (["technical", "legal", "reasoning_heavy", "mixed"].includes(d)) dom = d;
+      }
+      setSr(p => ({ ...p, classify: { domain: dom } })); setStage(1);
+
+      // Dispatch
+      const sp = buildSpecialistPrompt(dom);
+      const um = [{ role: "user", content: query }];
+      const dt = Date.now();
+      const [cR, gR] = await Promise.all([callClaude(um, sp), callOpenAI(openaiKey, um, sp)]);
+      setSr(p => ({ ...p, dispatch: { claude: cR, gpt: gR, ms: Date.now() - dt } })); setStage(2);
+
+      // Evaluate
+      const coin = Math.random() > 0.5;
+      const [aR, bR, aS, bS] = coin ? [cR, gR, "claude", "gpt"] : [gR, cR, "gpt", "claude"];
+      const eP = `Domain: ${dom}\n\nQuery:\n${query}\n\n--- Response A ---\n${aR}\n\n--- Response B ---\n${bR}`;
+      const eRaw = await callClaude([{ role: "user", content: eP }], EVALUATOR_SYSTEM, 6000);
+      let ev;
+      try { ev = JSON.parse(eRaw.replace(/```json\s*/g, "").replace(/```/g, "").trim()); ev._map = { A: aS, B: bS }; }
+      catch { ev = { raw: eRaw, _fail: true, _map: { A: aS, B: bS } }; }
+      setSr(p => ({ ...p, evaluate: ev })); setStage(3);
+
+      // Follow-up
+      let fu = null;
+      if (ev.follow_up_needed?.needed && ev.follow_up_needed?.query) {
+        const fq = ev.follow_up_needed.query;
+        const [fc, fg] = await Promise.all([callClaude([{ role: "user", content: fq }], sp, 2048), callOpenAI(openaiKey, [{ role: "user", content: fq }], sp, 2048)]);
+        fu = { query: fq, claude: fc, gpt: fg };
+      }
+      setSr(p => ({ ...p, followup: fu || { skipped: true } })); setStage(4);
+
+      // Synthesise
+      let si = `Query:\n${query}\n\n--- A (${aS}) ---\n${aR}\n\n--- B (${bS}) ---\n${bR}\n\n--- Evaluation ---\n${JSON.stringify(ev, null, 2)}`;
+      if (fu) si += `\n\n--- Follow-up ("${fu.query}") ---\n1: ${fu.claude}\n2: ${fu.gpt}`;
+      const syn = await callClaude([{ role: "user", content: si }], buildSynthesisPrompt(dom), 4096);
+      const tt = Date.now() - t0;
+      setOutput(syn);
+      setHist(h => [{ query, output: syn, domain: dom, ts: new Date().toISOString(), ev, tt }, ...h]);
+      setStage(5);
+    } catch (e) { setErr(e.message); } finally { setIsRunning(false); }
+  }, [query, openaiKey, domain]);
+
+  // ── Key screen ──
+  if (!keySet) return (
+    <div style={S.root}><div style={S.keyScreen}>
+      <div style={S.mark}>◈</div>
+      <h1 style={S.h1}>Dual-AI Evaluation Engine</h1>
+      <p style={S.sub}>Multi-model blackbox · 8-dimension matrix scoring · Failure mode detection · Domain-aware reasoning · Synthesised expert output</p>
+      <div style={S.keyCard}>
+        <label style={S.lbl}>OpenAI API Key</label>
+        <input type="password" value={openaiKey} onChange={e => setOpenaiKey(e.target.value)} placeholder="sk-..." style={S.inp}
+          onKeyDown={e => e.key === "Enter" && openaiKey.trim() && setKeySet(true)} />
+        <p style={S.hint2}>Session-only. Never persisted. Direct to api.openai.com only.</p>
+        <button onClick={() => openaiKey.trim() && setKeySet(true)} disabled={!openaiKey.trim()}
+          style={{ ...S.pri, ...(openaiKey.trim() ? {} : S.dis) }}>Initialise</button>
+      </div>
+    </div></div>
+  );
+
+  const ev = sr.evaluate || {};
+  const ms = (k) => { const m = ev._map || {}; return k === "A" ? (m.A === "claude" ? "Claude" : "GPT-4o") : (m.B === "claude" ? "Claude" : "GPT-4o"); };
+
+  return (
+    <div style={S.root}>
+      {/* Header */}
+      <div style={S.hdr}>
+        <div style={S.hdrL}><span style={S.hdrM}>◈</span><span style={S.hdrN}>Dual-AI Engine</span><span style={S.ver}>v2.0</span></div>
+        <div style={S.hdrR}><span style={S.mbadge}>Sonnet 4</span><span style={S.mbadge}>GPT-4o</span><button onClick={() => { setKeySet(false); setOpenaiKey(""); }} style={S.ghost}>Reset</button></div>
+      </div>
+      {/* Tabs */}
+      <div style={S.tabs}>
+        {[["query","Query"],["history",`History (${hist.length})`]].map(([id,l]) => (
+          <button key={id} onClick={() => setTab(id)} style={{...S.tabBtn,...(tab===id?S.tabAct:{})}}>{l}</button>
+        ))}
+      </div>
+
+      {tab === "query" && <>
+        {/* Input */}
+        <div style={S.inArea}>
+          <div style={S.domRow}>
+            <label style={S.lbl}>Domain</label>
+            <div style={S.chips}>{Object.entries(DOMAIN_PROFILES).map(([k,v]) => (
+              <button key={k} onClick={() => setDomain(k)} style={{...S.chip,...(domain===k?S.chipOn:{})}}>{v.label}</button>
+            ))}</div>
+          </div>
+          <textarea value={query} onChange={e => setQuery(e.target.value)} placeholder="Enter query — dispatched to both models, matrix-evaluated across 8 dimensions, failure-scanned, synthesised..." style={S.ta} rows={4}
+            onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !isRunning && query.trim()) run(); }} />
+          <div style={S.inFoot}>
+            <span style={S.hint3}>⌘+Enter · {DOMAIN_PROFILES[domain]?.label}</span>
+            <button onClick={run} disabled={isRunning || !query.trim()} style={{...S.pri,...(isRunning||!query.trim()?S.dis:{})}}>
+              {isRunning ? "Processing..." : "Run Pipeline"}</button>
+          </div>
+        </div>
+
+        {/* Pipeline */}
+        {stage >= 0 && <div style={S.pipe}>{STAGES.map((s,i) => {
+          const act = i === stage && isRunning, done = i < stage || stage >= 5, skip = s.id === "followup" && sr.followup?.skipped;
+          return (<div key={s.id} style={{...S.stg,...(act?S.stgAct:done?(skip?S.stgSkip:S.stgDone):S.stgPend)}}>
+            <span>{act?"⟳":done?(skip?"–":"✓"):s.icon}</span><span style={{fontWeight:500}}>{s.label}{skip?" (skip)":""}</span>
+          </div>);
+        })}</div>}
+
+        {err && <div style={S.errBox}><strong>Error:</strong> {err}</div>}
+
+        {/* Output */}
+        {output && <div ref={outRef} style={S.outBox}>
+          <div style={S.outHd}>
+            <span style={S.outTi}>Synthesised Output</span>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={() => setShowSC(!showSC)} style={S.ghost}>{showSC?"Hide":"Show"} Scorecard</button>
+              <button onClick={() => setShowBB(!showBB)} style={S.ghost}>{showBB?"Hide":"Show"} Blackbox</button>
+            </div>
+          </div>
+          <div style={S.outBd}><Fmt text={output}/></div>
+        </div>}
+
+        {/* Scorecard */}
+        {showSC && ev.response_a && <div style={S.scBox}>
+          <div style={S.scTitle}>Evaluation Matrix Scorecard</div>
+          <div style={S.scGrid}>
+            <div style={S.scH}>Dimension</div><div style={S.scH}>Wt</div>
+            <div style={{...S.scH,textAlign:"center"}}>{ms("A")}</div>
+            <div style={{...S.scH,textAlign:"center"}}>{ms("B")}</div>
+            {EVAL_DIMENSIONS.map(dim => {
+              const aD = ev.response_a?.dimensions?.find(d => d.name === dim.name);
+              const bD = ev.response_b?.dimensions?.find(d => d.name === dim.name);
+              const aV = aD?.score ?? "–", bV = bD?.score ?? "–";
+              const w = typeof aV==="number"&&typeof bV==="number"?(aV>bV?"a":bV>aV?"b":"t"):"t";
+              return [
+                <div key={dim.name+"l"} style={S.scC}>{dim.label}</div>,
+                <div key={dim.name+"w"} style={{...S.scC,color:"#666"}}>{dim.weight}%</div>,
+                <div key={dim.name+"a"} style={{...S.scC,textAlign:"center",fontWeight:w==="a"?700:400,color:w==="a"?"#22c55e":"#ccc"}}>{aV}/5</div>,
+                <div key={dim.name+"b"} style={{...S.scC,textAlign:"center",fontWeight:w==="b"?700:400,color:w==="b"?"#22c55e":"#ccc"}}>{bV}/5</div>,
+              ];
+            })}
+          </div>
+          <div style={{marginTop:14}}>
+            <SBar l={ms("A")} s={ev.response_a?.weighted_score} v={getVerdict(ev.response_a?.weighted_score||0)}/>
+            <SBar l={ms("B")} s={ev.response_b?.weighted_score} v={getVerdict(ev.response_b?.weighted_score||0)}/>
+          </div>
+          <FModes a={ev.response_a?.failure_modes} b={ev.response_b?.failure_modes} ms={ms}/>
+          <div style={S.winBox}>Winner: <strong>{ev.overall_winner==="tie"?"Tie":ms(ev.overall_winner)}</strong>
+            {ev.adjudication_rationale && <span style={{marginLeft:12,color:"#888"}}>— {ev.adjudication_rationale}</span>}
+          </div>
+        </div>}
+
+        {/* Blackbox */}
+        {showBB && sr.dispatch && <div style={S.bb}>
+          <div style={S.bbTi}>Pipeline Internals</div>
+          <div style={S.bbSec}><div style={S.bbLbl}>Domain: <strong>{sr.classify?.domain}</strong> · Dispatch: {sr.dispatch.ms}ms</div></div>
+          <div style={S.bbSec}>
+            <div style={S.bbLbl}>Parallel Responses</div>
+            <div style={S.bbCols}>
+              <div style={S.bbCol}><div style={S.bbColH}>Claude Sonnet 4</div><div style={S.bbCnt}><Fmt text={sr.dispatch.claude}/></div></div>
+              <div style={S.bbCol}><div style={S.bbColH}>GPT-4o</div><div style={S.bbCnt}><Fmt text={sr.dispatch.gpt}/></div></div>
+            </div>
+          </div>
+          {sr.followup && !sr.followup.skipped && <div style={S.bbSec}>
+            <div style={S.bbLbl}>Follow-up: "{sr.followup.query}"</div>
+            <div style={S.bbCols}>
+              <div style={S.bbCol}><div style={S.bbColH}>Claude</div><div style={S.bbCnt}><Fmt text={sr.followup.claude}/></div></div>
+              <div style={S.bbCol}><div style={S.bbColH}>GPT-4o</div><div style={S.bbCnt}><Fmt text={sr.followup.gpt}/></div></div>
+            </div>
+          </div>}
+          {ev.contradictions?.length > 0 && <div style={S.bbSec}>
+            <div style={S.bbLbl}>Contradictions</div>
+            {ev.contradictions.map((c,i) => <div key={i} style={S.cCard}>
+              <div style={{fontWeight:600,marginBottom:4}}>{c.point}</div>
+              <div style={{color:"#888"}}>{ms("A")}: {c.a_says}</div>
+              <div style={{color:"#888"}}>{ms("B")}: {c.b_says}</div>
+              <div style={{color:"#4ade80",marginTop:4}}>→ {c.resolution}</div>
+            </div>)}
+          </div>}
+          {ev.gaps_both_missed?.length > 0 && <div style={S.bbSec}>
+            <div style={S.bbLbl}>Gaps Both Missed</div>
+            {ev.gaps_both_missed.map((g,i) => <div key={i} style={{fontSize:12,color:"#888",padding:"2px 0"}}>• {g}</div>)}
+          </div>}
+        </div>}
+      </>}
+
+      {/* History */}
+      {tab === "history" && <div style={{padding:"8px 16px 20px"}}>
+        {hist.length === 0 ? <p style={{color:"#555",padding:20,textAlign:"center"}}>No queries yet</p> :
+          hist.map((h,i) => <div key={i} style={S.hCard} onClick={() => { setQuery(h.query); setTab("query"); }}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <span style={{...S.chip,...S.chipSm}}>{DOMAIN_PROFILES[h.domain]?.label||h.domain}</span>
+              <span style={{fontSize:11,color:"#555"}}>{new Date(h.ts).toLocaleTimeString()} · {h.tt ? `${(h.tt/1000).toFixed(1)}s` : ""}</span>
+            </div>
+            <div style={{fontSize:13,lineHeight:1.5,color:"#ccc"}}>{h.query.slice(0,140)}{h.query.length>140?"...":""}</div>
+          </div>)}
+      </div>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SUB-COMPONENTS
+// ═══════════════════════════════════════════════════════════════════
+
+function SBar({l,s,v}) {
+  const pct = Math.min(100,((s||0)/5)*100);
+  return <div style={{marginBottom:8}}>
+    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,marginBottom:3}}>
+      <span>{l}</span><span style={{color:v.color,fontWeight:600}}>{s?.toFixed(2)}/5 — {v.label}</span>
+    </div>
+    <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,0.06)"}}>
+      <div style={{height:"100%",borderRadius:3,width:`${pct}%`,background:v.color,transition:"width 0.5s"}}/>
+    </div>
+  </div>;
+}
+
+function FModes({a,b,ms}) {
+  const det = [];
+  (a||[]).forEach(f => { if (f.detected) det.push({...f, src: ms("A")}); });
+  (b||[]).forEach(f => { if (f.detected) det.push({...f, src: ms("B")}); });
+  if (!det.length) return <div style={{fontSize:12,color:"#4ade80",padding:"8px 0"}}>No failure modes detected</div>;
+  return <div style={{marginTop:8}}>
+    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#f87171",marginBottom:6}}>Detected Failure Modes</div>
+    {det.map((f,i) => <div key={i} style={{display:"flex",gap:8,alignItems:"center",fontSize:12,padding:"3px 0",color:f.severity==="critical"?"#ef4444":f.severity==="high"?"#f97316":"#888"}}>
+      <span style={{fontWeight:600,minWidth:50}}>{f.src}</span>
+      <span style={{fontFamily:"monospace",minWidth:170}}>{f.name}</span>
+      <span style={{textTransform:"uppercase",fontSize:10,fontWeight:700}}>{f.severity}</span>
+      <span style={{color:"#888"}}>— {f.rationale}</span>
+    </div>)}
+  </div>;
+}
+
+function Fmt({text}) {
+  if (!text) return null;
+  const lines = text.split("\n"), els = [];
+  let li = [];
+  const fl = () => { if (li.length) { els.push(<ul key={`l${els.length}`} style={{margin:"4px 0",paddingLeft:20}}>{li.map((x,i) => <li key={i} style={{marginBottom:2,fontSize:13,lineHeight:1.6}}>{il(x)}</li>)}</ul>); li = []; }};
+  for (let i=0;i<lines.length;i++) {
+    const l = lines[i];
+    if (l.startsWith("### ")) { fl(); els.push(<h4 key={i} style={{fontSize:13,fontWeight:700,margin:"10px 0 4px"}}>{il(l.slice(4))}</h4>); }
+    else if (l.startsWith("## ")) { fl(); els.push(<h3 key={i} style={{fontSize:14,fontWeight:700,margin:"12px 0 6px"}}>{il(l.slice(3))}</h3>); }
+    else if (l.startsWith("# ")) { fl(); els.push(<h2 key={i} style={{fontSize:16,fontWeight:700,margin:"16px 0 8px"}}>{il(l.slice(2))}</h2>); }
+    else if (/^[-*]\s/.test(l)) li.push(l.replace(/^[-*]\s/,""));
+    else if (/^\d+\.\s/.test(l)) li.push(l.replace(/^\d+\.\s/,""));
+    else if (!l.trim()) { fl(); els.push(<div key={i} style={{height:6}}/>); }
+    else { fl(); els.push(<p key={i} style={{margin:"3px 0",fontSize:13,lineHeight:1.65}}>{il(l)}</p>); }
+  }
+  fl(); return <>{els}</>;
+}
+
+function il(t) {
+  const p=[], r=/(\*\*(.+?)\*\*)|(`(.+?)`)/g;
+  let last=0, m;
+  while ((m=r.exec(t))!==null) {
+    if (m.index>last) p.push(t.slice(last,m.index));
+    if (m[2]) p.push(<strong key={m.index}>{m[2]}</strong>);
+    if (m[4]) p.push(<code key={m.index} style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:12,padding:"1px 5px",borderRadius:3,background:"rgba(150,150,150,0.12)"}}>{m[4]}</code>);
+    last=r.lastIndex;
+  }
+  if (last<t.length) p.push(t.slice(last));
+  return p.length?p:t;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════
+
+const S = {
+  root:{fontFamily:"'IBM Plex Sans','SF Pro Text',-apple-system,sans-serif",maxWidth:"100%",minHeight:"100vh",color:"var(--text-primary,#e0e0e0)",background:"transparent",fontSize:14,lineHeight:1.6},
+  keyScreen:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"80vh",padding:24},
+  mark:{fontSize:52,color:"#60a5fa",marginBottom:12},
+  h1:{fontSize:24,fontWeight:700,margin:0,letterSpacing:"-0.03em"},
+  sub:{fontSize:13,color:"#888",marginTop:10,maxWidth:480,textAlign:"center",lineHeight:1.6},
+  keyCard:{marginTop:28,width:"100%",maxWidth:380,display:"flex",flexDirection:"column",gap:10},
+  lbl:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.06em",color:"#888"},
+  inp:{padding:"10px 14px",borderRadius:8,border:"1px solid #333",background:"#111827",color:"#e0e0e0",fontSize:14,outline:"none",fontFamily:"'IBM Plex Mono',monospace"},
+  hint2:{fontSize:11,color:"#555",margin:0},
+  pri:{padding:"10px 20px",borderRadius:8,border:"none",background:"#60a5fa",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"},
+  dis:{opacity:0.35,cursor:"not-allowed"},
+  ghost:{fontSize:11,padding:"4px 10px",borderRadius:4,background:"none",border:"1px solid #333",color:"#888",cursor:"pointer"},
+  hdr:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 16px",borderBottom:"1px solid #1e293b"},
+  hdrL:{display:"flex",alignItems:"center",gap:8},hdrR:{display:"flex",alignItems:"center",gap:6},
+  hdrM:{fontSize:20,color:"#60a5fa"},hdrN:{fontWeight:700,fontSize:15},
+  ver:{fontSize:10,padding:"2px 6px",borderRadius:3,background:"#1e293b",color:"#60a5fa",fontFamily:"monospace"},
+  mbadge:{fontSize:10,padding:"3px 7px",borderRadius:3,background:"#0f172a",border:"1px solid #1e293b",color:"#888",fontFamily:"monospace"},
+  tabs:{display:"flex",borderBottom:"1px solid #1e293b",padding:"0 16px"},
+  tabBtn:{padding:"8px 16px",fontSize:12,fontWeight:600,color:"#555",background:"none",border:"none",borderBottom:"2px solid transparent",cursor:"pointer"},
+  tabAct:{color:"#60a5fa",borderBottomColor:"#60a5fa"},
+  inArea:{padding:"14px 16px 8px"},
+  domRow:{marginBottom:10},chips:{display:"flex",gap:6,marginTop:4,flexWrap:"wrap"},
+  chip:{fontSize:11,padding:"4px 12px",borderRadius:16,border:"1px solid #333",background:"transparent",color:"#888",cursor:"pointer",fontWeight:500},
+  chipOn:{background:"rgba(96,165,250,0.12)",borderColor:"#60a5fa",color:"#60a5fa"},
+  chipSm:{padding:"2px 8px",fontSize:10},
+  ta:{width:"100%",padding:"12px 14px",borderRadius:8,border:"1px solid #1e293b",background:"#0f172a",color:"#e0e0e0",fontSize:14,lineHeight:1.6,resize:"vertical",outline:"none",fontFamily:"inherit",boxSizing:"border-box"},
+  inFoot:{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8},
+  hint3:{fontSize:11,color:"#555"},
+  pipe:{display:"flex",gap:4,padding:"8px 16px",overflowX:"auto",flexWrap:"wrap"},
+  stg:{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:16,fontSize:11,whiteSpace:"nowrap"},
+  stgAct:{background:"rgba(96,165,250,0.1)",border:"1px solid #60a5fa",color:"#60a5fa"},
+  stgDone:{background:"rgba(74,222,128,0.08)",border:"1px solid #4ade80",color:"#4ade80"},
+  stgSkip:{background:"transparent",border:"1px solid #333",color:"#555"},
+  stgPend:{background:"transparent",border:"1px solid #1e293b",color:"#555"},
+  errBox:{margin:"8px 16px",padding:"10px 14px",borderRadius:8,background:"rgba(239,68,68,0.08)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontSize:13},
+  outBox:{margin:"12px 16px",borderRadius:8,border:"1px solid #1e293b",overflow:"hidden"},
+  outHd:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",background:"#0f172a",borderBottom:"1px solid #1e293b"},
+  outTi:{fontWeight:700,fontSize:13},outBd:{padding:"14px 16px"},
+  scBox:{margin:"0 16px 12px",padding:16,borderRadius:8,border:"1px solid #1e293b",background:"#0f172a"},
+  scTitle:{fontSize:13,fontWeight:700,marginBottom:12,color:"#60a5fa"},
+  scGrid:{display:"grid",gridTemplateColumns:"1fr 50px 70px 70px",gap:"4px 8px",fontSize:12},
+  scH:{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#555",paddingBottom:4,borderBottom:"1px solid #1e293b"},
+  scC:{padding:"3px 0",borderBottom:"1px solid rgba(30,41,59,0.5)"},
+  winBox:{marginTop:12,padding:"8px 12px",borderRadius:6,background:"#111827",fontSize:13},
+  bb:{margin:"0 16px 16px",padding:16,borderRadius:8,border:"1px dashed #1e293b",background:"rgba(0,0,0,0.2)"},
+  bbTi:{fontSize:13,fontWeight:700,color:"#888",marginBottom:14},
+  bbSec:{marginBottom:16},bbLbl:{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",color:"#60a5fa",marginBottom:8},
+  bbCols:{display:"flex",gap:10,flexWrap:"wrap"},
+  bbCol:{flex:"1 1 260px",borderRadius:6,border:"1px solid #1e293b",overflow:"hidden"},
+  bbColH:{padding:"5px 10px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",background:"#0f172a",borderBottom:"1px solid #1e293b",color:"#888"},
+  bbCnt:{padding:"10px 12px",fontSize:12,lineHeight:1.6,maxHeight:360,overflowY:"auto"},
+  cCard:{padding:10,borderRadius:6,border:"1px solid #1e293b",marginBottom:6,fontSize:12,lineHeight:1.5},
+  hCard:{padding:"10px 14px",borderRadius:8,border:"1px solid #1e293b",marginBottom:8,cursor:"pointer"},
+};
