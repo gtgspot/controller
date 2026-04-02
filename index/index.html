@@ -8,7 +8,1273 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dual-AI Evaluation Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
     :root {
+      color-scheme: dark;
+      --bg: #020617;
+      --panel: #0f172a;
+      --panel-2: #111827;
+      --panel-3: #172036;
+      --border: #1e293b;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --accent: #60a5fa;
+      --accent-2: #93c5fd;
+      --success: #4ade80;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 18px 50px rgba(0,0,0,0.35);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top, rgba(96,165,250,0.11), transparent 38%),
+        linear-gradient(180deg, rgba(2,6,23,0.98), rgba(2,6,23,1));
+      color: var(--text);
+      font-family: 'IBM Plex Sans', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    button, input, textarea { font: inherit; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(96,165,250,0.15);
+    }
+    textarea { resize: vertical; }
+    button {
+      cursor: pointer;
+      transition: transform 0.05s ease, opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    code {
+      font-family: 'IBM Plex Mono', monospace;
+      padding: 1px 6px;
+      background: rgba(148,163,184,0.14);
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .hidden { display: none !important; }
+
+    .app {
+      max-width: 1240px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+
+    .setup {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+    .setup-card {
+      width: 100%;
+      max-width: 620px;
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.86);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+    .mark {
+      font-size: 56px;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+    .sub {
+      margin: 10px 0 24px;
+      color: var(--muted);
+      max-width: 56ch;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .field { margin-bottom: 14px; }
+    .label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .hint {
+      margin-top: 6px;
+      color: var(--dim);
+      font-size: 12px;
+    }
+    .input { padding: 11px 13px; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    .btn-primary {
+      border: none;
+      background: var(--accent);
+      color: white;
+      border-radius: 10px;
+      padding: 11px 18px;
+      font-weight: 700;
+    }
+    .btn-secondary {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .btn-chip {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-chip.active {
+      color: var(--accent-2);
+      border-color: var(--accent);
+      background: rgba(96,165,250,0.12);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      backdrop-filter: blur(12px);
+      background: rgba(2,6,23,0.74);
+      z-index: 20;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand .icon { color: var(--accent); font-size: 22px; }
+    .version, .badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 7px;
+      color: var(--muted);
+      background: rgba(15,23,42,0.8);
+    }
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      border: none;
+      background: transparent;
+      color: var(--dim);
+      font-weight: 700;
+      padding: 11px 14px 10px;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      color: var(--accent-2);
+      border-color: var(--accent);
+    }
+
+    .section { padding: 16px 18px; }
+    .panel {
+      border: 1px solid var(--border);
+      background: rgba(15,23,42,0.82);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .panel + .panel { margin-top: 14px; }
+    .panel-body { padding: 16px; }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15,23,42,0.68);
+    }
+    .panel-title { font-weight: 700; }
+    .row-between {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .domain-chips, .panel-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .textarea {
+      min-height: 120px;
+      padding: 13px 14px;
+    }
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pipeline {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 0 18px 4px;
+    }
+    .stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      background: rgba(15,23,42,0.4);
+      white-space: nowrap;
+    }
+    .stage.active {
+      border-color: var(--accent);
+      color: var(--accent-2);
+      background: rgba(96,165,250,0.12);
+    }
+    .stage.done {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(74,222,128,0.09);
+    }
+    .stage.skip {
+      color: var(--dim);
+      background: transparent;
+    }
+
+    .error-box, .note-box {
+      margin: 0 18px 14px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid;
+      font-size: 13px;
+    }
+    .error-box {
+      border-color: rgba(239,68,68,0.35);
+      background: rgba(239,68,68,0.09);
+      color: #fda4af;
+    }
+    .note-box {
+      border-color: rgba(96,165,250,0.28);
+      background: rgba(96,165,250,0.08);
+      color: #cbd5e1;
+    }
+
+    .formatted {
+      font-size: 13px;
+      line-height: 1.68;
+      color: var(--text);
+    }
+    .formatted p { margin: 4px 0; }
+    .formatted h2, .formatted h3, .formatted h4 {
+      margin: 12px 0 6px;
+      line-height: 1.3;
+    }
+    .formatted ul {
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    .formatted li { margin-bottom: 3px; }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) 56px 90px 90px;
+      gap: 6px 10px;
+      font-size: 12px;
+    }
+    .score-head {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--dim);
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+    }
+    .score-cell {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(30,41,59,0.6);
+    }
+    .score-win { color: var(--success); font-weight: 700; }
+    .score-bar {
+      margin-top: 10px;
+    }
+    .bar-track {
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+    .failure-title {
+      margin-top: 14px;
+      margin-bottom: 6px;
+      color: #fca5a5;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .failure-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      padding: 4px 0;
+      color: var(--muted);
+    }
+    .winner-box {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(17,24,39,0.8);
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .bb-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .bb-col {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(2,6,23,0.28);
+    }
+    .bb-col-head {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15,23,42,0.84);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .bb-col-body {
+      padding: 12px;
+      max-height: 380px;
+      overflow: auto;
+    }
+    .mini-title {
+      margin: 16px 0 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(2,6,23,0.22);
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .history-list { display: grid; gap: 10px; }
+    .history-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: rgba(15,23,42,0.75);
+      cursor: pointer;
+    }
+    .history-card:hover { border-color: rgba(96,165,250,0.4); }
+
+    .inline-status {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .bb-columns, .grid-2 { grid-template-columns: 1fr; }
+      .score-grid { grid-template-columns: minmax(140px, 1fr) 44px 70px 70px; }
+      .topbar { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section id="setupScreen" class="setup">
+      <div class="setup-card">
+        <div class="mark">◈</div>
+        <h1>Dual-AI Evaluation Engine</h1>
+        <p class="sub">Purpose-built HTML support app for the JSX workflow: dual-model dispatch, 8-dimension matrix scoring, failure-mode detection, contradiction analysis, optional follow-up, and synthesis.</p>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="openaiKeyInput">OpenAI API Key</label>
+            <input id="openaiKeyInput" class="input mono" type="password" placeholder="sk-..." />
+            <div class="hint">Used for the GPT response path.</div>
+          </div>
+          <div class="field">
+            <label class="label" for="anthropicKeyInput">Anthropic API Key</label>
+            <input id="anthropicKeyInput" class="input mono" type="password" placeholder="sk-ant-... or leave blank if proxy injects auth" />
+            <div class="hint">Used for classify, Claude response, evaluator, and synthesis unless your proxy supplies auth.</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label class="label" for="openaiEndpointInput">OpenAI Endpoint</label>
+            <input id="openaiEndpointInput" class="input mono" type="text" value="https://api.openai.com/v1/chat/completions" />
+          </div>
+          <div class="field">
+            <label class="label" for="anthropicEndpointInput">Anthropic Endpoint</label>
+            <input id="anthropicEndpointInput" class="input mono" type="text" value="https://api.anthropic.com/v1/messages" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="proxyNote">Operational Note</label>
+          <div id="proxyNote" class="note-box" style="margin:0;">
+            The original JSX logic expects Claude to handle classification, evaluation, and synthesis. In a browser that usually requires either an Anthropic key plus permissive CORS, or a proxy route that injects auth headers server-side.
+          </div>
+        </div>
+
+        <div class="row-between">
+          <div class="inline-status">
+            <span>Session-only unless you enable remember.</span>
+            <label><input id="rememberKeysCheckbox" type="checkbox" /> remember config locally</label>
+          </div>
+          <button id="initBtn" class="btn-primary">Initialise</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="appScreen" class="hidden">
+      <header class="topbar">
+        <div class="brand">
+          <span class="icon">◈</span>
+          <span>Dual-AI Engine</span>
+          <span class="version">v2.1-html</span>
+        </div>
+        <div class="top-actions">
+          <span class="badge">Sonnet 4</span>
+          <span class="badge">GPT-4o</span>
+          <button id="settingsBtn" class="btn-secondary">Settings</button>
+          <button id="resetBtn" class="btn-secondary">Reset</button>
+        </div>
+      </header>
+
+      <nav class="tabs">
+        <button id="tabQuery" class="tab active">Query</button>
+        <button id="tabHistory" class="tab">History (<span id="historyCount">0</span>)</button>
+      </nav>
+
+      <div id="settingsPanel" class="section hidden">
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Runtime Settings</div></div>
+          <div class="panel-body">
+            <div class="grid-2">
+              <div class="field">
+                <label class="label" for="openaiKeyRuntime">OpenAI API Key</label>
+                <input id="openaiKeyRuntime" class="input mono" type="password" />
+              </div>
+              <div class="field">
+                <label class="label" for="anthropicKeyRuntime">Anthropic API Key</label>
+                <input id="anthropicKeyRuntime" class="input mono" type="password" />
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label class="label" for="openaiEndpointRuntime">OpenAI Endpoint</label>
+                <input id="openaiEndpointRuntime" class="input mono" type="text" />
+              </div>
+              <div class="field">
+                <label class="label" for="anthropicEndpointRuntime">Anthropic Endpoint</label>
+                <input id="anthropicEndpointRuntime" class="input mono" type="text" />
+              </div>
+            </div>
+            <div class="row-between">
+              <span class="subtle">Update runtime credentials or swap endpoints to your own proxy routes.</span>
+              <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section id="queryView">
+        <div class="section">
+          <div class="panel">
+            <div class="panel-body">
+              <div class="field">
+                <label class="label">Domain</label>
+                <div id="domainChips" class="domain-chips"></div>
+              </div>
+              <div class="field">
+                <textarea id="queryInput" class="textarea" placeholder="Enter query — dispatched to both models, matrix-evaluated across 8 dimensions, contradiction-scanned, optionally followed up, then synthesised."></textarea>
+              </div>
+              <div class="row-between">
+                <span class="subtle">Ctrl/Cmd + Enter runs the full pipeline.</span>
+                <button id="runBtn" class="btn-primary">Run Pipeline</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="pipeline" class="pipeline hidden"></div>
+        <div id="errorBox" class="error-box hidden"></div>
+        <div id="runtimeNote" class="note-box hidden"></div>
+
+        <div id="outputSection" class="section hidden">
+          <div class="panel">
+            <div class="panel-head">
+              <div class="panel-title">Synthesised Output</div>
+              <div class="panel-actions">
+                <button id="toggleScorecardBtn" class="btn-secondary">Show Scorecard</button>
+                <button id="toggleBlackboxBtn" class="btn-secondary">Show Blackbox</button>
+              </div>
+            </div>
+            <div id="outputBody" class="panel-body formatted"></div>
+          </div>
+        </div>
+
+        <div id="scorecardSection" class="section hidden"></div>
+        <div id="blackboxSection" class="section hidden"></div>
+      </section>
+
+      <section id="historyView" class="section hidden">
+        <div id="historyList" class="history-list"></div>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    const EVAL_DIMENSIONS = [
+      { name: "instruction_fidelity", label: "Instruction Fidelity", weight: 15, question: "Did the model follow the task exactly?" },
+      { name: "epistemic_integrity", label: "Epistemic Integrity", weight: 20, question: "Is the response truthful, disciplined, and uncertainty-aware?" },
+      { name: "reasoning_quality", label: "Reasoning Quality", weight: 20, question: "Is the reasoning valid, layered, and discriminative?" },
+      { name: "evidence_mapping", label: "Evidence Mapping", weight: 15, question: "Are claims grounded in provided data?" },
+      { name: "structural_clarity", label: "Structural Clarity", weight: 10, question: "Is the output well-organised and cognitively parsable?" },
+      { name: "technical_precision", label: "Technical Precision", weight: 10, question: "Is the language and terminology precise?" },
+      { name: "actionability", label: "Actionability", weight: 5, question: "Can the output be used immediately?" },
+      { name: "risk_awareness", label: "Risk Awareness", weight: 5, question: "Does the model account for misdiagnosis or failure?" },
+    ];
+
+    const FAILURE_MODES = [
+      "hallucination", "overgeneralisation", "instruction_drift", "causal_collapse",
+      "ambiguity_blindness", "redundancy", "unsupported_claim", "speculation_as_fact",
+      "jurisdictional_misclassification", "authority_misstatement", "citation_failure",
+      "missing_counterargument", "missing_falsifiability", "conflation_of_observation_and_inference"
+    ];
+
+    const VERDICT_MAP = [
+      { min: 4.5, label: "Production-grade", color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
+      { min: 3.8, label: "Strong", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+      { min: 3.0, label: "Acceptable", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+      { min: 2.0, label: "Weak", color: "#f97316", bg: "rgba(249,115,22,0.1)" },
+      { min: 0, label: "Unusable", color: "#ef4444", bg: "rgba(239,68,68,0.1)" },
+    ];
+
+    const DOMAIN_PROFILES = {
+      technical: {
+        label: "Technical",
+        system_augment: `Apply technical reasoning discipline:\n- Separate observations from inferences from speculation explicitly\n- Rank hypotheses by confidence with mechanism explanations\n- Provide validation tests for each hypothesis\n- Flag misdiagnosis risks\n- No generic troubleshooting — discriminating analysis only`,
+        eval_augment: `Additional technical criteria: observation/inference separation, hypothesis ranking, validation tests, misdiagnosis risks.`
+      },
+      legal: {
+        label: "Legal",
+        system_augment: `Apply legal reasoning discipline:\n- Map each proposition to a governing source of law (statute, regulation, case law)\n- Distinguish between statute, regulation, case law, policy, and assumption\n- Check jurisdictional preconditions\n- Identify counterarguments\n- Map remedies to causes of action\n- Cite with pinpoint references (Act, section, subsection)`,
+        eval_augment: `Additional legal criteria: source-of-law mapping, statute/regulation/case-law distinction, jurisdictional preconditions, counterarguments, pinpoint citations.`
+      },
+      reasoning_heavy: {
+        label: "Reasoning",
+        system_augment: `Apply rigorous reasoning discipline:\n- Audit every substantive claim (observation/inference/speculation/conclusion/recommendation)\n- Require competing explanations where multiple exist\n- Disclose uncertainty explicitly\n- Scan for failure modes: hallucination, causal collapse, overgeneralisation\n- Provide confidence scores with justification`,
+        eval_augment: `Additional reasoning criteria: claim typing, competing explanations, uncertainty disclosure, confidence justification.`
+      },
+      mixed: {
+        label: "Auto-detect",
+        system_augment: `Apply comprehensive reasoning discipline:\n- Separate observations from inferences from speculation\n- Ground claims in evidence; flag unsupported assertions\n- Consider competing explanations\n- Disclose uncertainty explicitly\n- If legal elements present, cite governing provisions\n- Provide actionable next steps\n- Flag risks of wrong conclusions`,
+        eval_augment: `Evaluate across all domains with strictest applicable standard.`
+      }
+    };
+
+    const STAGES = [
+      { id: "classify", label: "Domain", icon: "◉" },
+      { id: "dispatch", label: "Dispatch", icon: "⚡" },
+      { id: "evaluate", label: "Matrix Eval", icon: "⚖" },
+      { id: "followup", label: "Follow-up", icon: "🔍" },
+      { id: "synthesize", label: "Synthesis", icon: "◈" },
+    ];
+
+    const DEFAULTS = {
+      anthropicModel: "claude-sonnet-4-20250514",
+      openaiModel: "gpt-4o",
+      openaiEndpoint: "https://api.openai.com/v1/chat/completions",
+      anthropicEndpoint: "https://api.anthropic.com/v1/messages"
+    };
+
+    const state = {
+      config: {
+        openaiKey: "",
+        anthropicKey: "",
+        openaiEndpoint: DEFAULTS.openaiEndpoint,
+        anthropicEndpoint: DEFAULTS.anthropicEndpoint,
+        remember: false
+      },
+      query: "",
+      domain: "mixed",
+      isRunning: false,
+      stage: -1,
+      sr: {},
+      output: "",
+      showBB: false,
+      showSC: false,
+      err: "",
+      hist: [],
+      tab: "query"
+    };
+
+    const els = {};
+
+    function buildSpecialistPrompt(domain) {
+      const p = DOMAIN_PROFILES[domain] || DOMAIN_PROFILES.mixed;
+      return `You are a senior domain expert providing rigorous, expert-grade analysis.\n\nCore requirements:\n- Every sentence advances understanding or action. Zero filler.\n- Distinguish clearly between observations, inferences, and speculation.\n- Where multiple explanations exist, compare them.\n- Be concise but technically dense.\n- If uncertain, say exactly why.\n- Do not assume facts not in evidence.\n- Do not give generic advice.\n\n${p.system_augment}\n\nStructure your response with clear sections. End with a confidence assessment.`;
+    }
+
+    const EVALUATOR_SYSTEM = `You are an adversarial evaluation engine implementing the LLM Response Evaluation Matrix v1.0.\n\nYou receive two anonymised responses (A and B) and a task domain.\n\nSCORING: Score each dimension 0-5 for EACH response.\n0=Absent/incorrect, 1=Severely flawed, 2=Weak, 3=Adequate, 4=Strong, 5=Expert-grade\n\nDIMENSIONS (weights): instruction_fidelity(15), epistemic_integrity(20), reasoning_quality(20), evidence_mapping(15), structural_clarity(10), technical_precision(10), actionability(5), risk_awareness(5)\n\nFAILURE MODES to scan: hallucination, overgeneralisation, instruction_drift, causal_collapse, ambiguity_blindness, redundancy, unsupported_claim, speculation_as_fact, missing_counterargument, missing_falsifiability, conflation_of_observation_and_inference, jurisdictional_misclassification, authority_misstatement, citation_failure\n\nAUTO-FAIL: fabricated facts→unusable, invented citation→unusable, contradicts supplied facts→needs_revision, repeated speculation as fact→needs_revision\n\nWEIGHTED SCORE = sum(score_i × weight_i/100). Verdict: >=4.5 production_grade, >=3.8 strong, >=3.0 acceptable, >=2.0 weak, <2.0 unusable\n\nADJUDICATION: 1) exclude auto-fails, 2) rank by weighted score, 3) break ties by fewer critical failures, then epistemic integrity, then reasoning quality\n\nRespond ONLY in valid JSON (no fences):\n{\n  "domain_detected": "technical|legal|reasoning_heavy|mixed",\n  "response_a": {\n    "dimensions": [{"name":"...", "score": N, "rationale":"..."}],\n    "weighted_score": N,\n    "failure_modes": [{"name":"...", "detected": bool, "severity":"low|medium|high|critical", "rationale":"..."}],\n    "verdict": "production_grade|strong|acceptable|weak|unusable|needs_revision",\n    "key_strengths": ["..."],\n    "critical_failures": ["..."]\n  },\n  "response_b": { "...same..." },\n  "contradictions": [{"point":"...", "a_says":"...", "b_says":"...", "resolution":"..."}],\n  "gaps_both_missed": ["..."],\n  "follow_up_needed": {"needed": bool, "query": "..."},\n  "overall_winner": "A|B|tie",\n  "adjudication_rationale": "...",\n  "confidence": 0-100\n}`;
+
+    function buildSynthesisPrompt(domain) {
+      const p = DOMAIN_PROFILES[domain] || DOMAIN_PROFILES.mixed;
+      return `You are a synthesis engine producing a single expert-grade output from multi-model evaluation.\n\nYou receive: original query, Response A, Response B, structured matrix evaluation with per-dimension scores and failure modes, and optionally follow-up research.\n\nProduce ONE definitive response:\n1. Take strongest elements based on dimension scores\n2. Resolve contradictions per evaluation analysis\n3. Fill identified gaps\n4. Incorporate follow-up research if present\n5. Maintain ${p.label} domain discipline\n6. Direct, actionable, expert-grade\n7. Append "Dissent Notes" if material disagreement exists\n\nDo NOT reference "Response A"/"Response B". Single authoritative voice.\nExclude content from any auto-failed response.`;
+    }
+
+    function getVerdict(score) {
+      for (const v of VERDICT_MAP) if ((score || 0) >= v.min) return v;
+      return VERDICT_MAP[VERDICT_MAP.length - 1];
+    }
+
+    async function callClaude(msgs, sys, max = 4096) {
+      const headers = { "Content-Type": "application/json" };
+      if (state.config.anthropicKey) {
+        headers["x-api-key"] = state.config.anthropicKey;
+        headers["anthropic-version"] = "2023-06-01";
+      }
+      const r = await fetch(state.config.anthropicEndpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: DEFAULTS.anthropicModel,
+          max_tokens: max,
+          system: sys,
+          messages: msgs
+        })
+      });
+      if (!r.ok) throw new Error(`Claude ${r.status}: ${await safeText(r)}`);
+      const d = await r.json();
+      return (d.content || []).map(b => b.type === "text" ? b.text : "").join("\n").trim();
+    }
+
+    async function callOpenAI(msgs, sys, max = 4096) {
+      const headers = { "Content-Type": "application/json" };
+      if (state.config.openaiKey) headers["Authorization"] = `Bearer ${state.config.openaiKey}`;
+      const r = await fetch(state.config.openaiEndpoint, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: DEFAULTS.openaiModel,
+          max_tokens: max,
+          messages: [{ role: "system", content: sys }, ...msgs]
+        })
+      });
+      if (!r.ok) throw new Error(`OpenAI ${r.status}: ${await safeText(r)}`);
+      const d = await r.json();
+      return d.choices?.[0]?.message?.content?.trim() || "";
+    }
+
+    async function safeText(response) {
+      try { return await response.text(); } catch { return "Unable to read error payload."; }
+    }
+
+    function parseEval(raw, map) {
+      try {
+        const cleaned = String(raw || "").replace(/```json\s*/g, "").replace(/```/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        parsed._map = map;
+        return parsed;
+      } catch {
+        return { raw, _fail: true, _map: map };
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderInline(text) {
+      const safe = escapeHtml(text);
+      return safe
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/`(.+?)`/g, '<code>$1</code>');
+    }
+
+    function formatText(text) {
+      if (!text) return "";
+      const lines = String(text).split("\n");
+      let html = "";
+      let inList = false;
+      const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
+      for (const rawLine of lines) {
+        const line = rawLine || "";
+        if (/^###\s+/.test(line)) {
+          closeList();
+          html += `<h4>${renderInline(line.replace(/^###\s+/, ""))}</h4>`;
+        } else if (/^##\s+/.test(line)) {
+          closeList();
+          html += `<h3>${renderInline(line.replace(/^##\s+/, ""))}</h3>`;
+        } else if (/^#\s+/.test(line)) {
+          closeList();
+          html += `<h2>${renderInline(line.replace(/^#\s+/, ""))}</h2>`;
+        } else if (/^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+          if (!inList) { html += "<ul>"; inList = true; }
+          html += `<li>${renderInline(line.replace(/^[-*]\s+/, "").replace(/^\d+\.\s+/, ""))}</li>`;
+        } else if (!line.trim()) {
+          closeList();
+          html += `<div style="height:6px"></div>`;
+        } else {
+          closeList();
+          html += `<p>${renderInline(line)}</p>`;
+        }
+      }
+      closeList();
+      return html;
+    }
+
+    function ms(key) {
+      const map = state.sr.evaluate?._map || {};
+      const source = key === "A" ? map.A : map.B;
+      return source === "claude" ? "Claude" : "GPT-4o";
+    }
+
+    function persistConfig() {
+      if (state.config.remember) {
+        localStorage.setItem("dual_ai_engine_config", JSON.stringify(state.config));
+      } else {
+        localStorage.removeItem("dual_ai_engine_config");
+      }
+    }
+
+    function loadPersistedConfig() {
+      try {
+        const raw = localStorage.getItem("dual_ai_engine_config");
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        state.config = { ...state.config, ...saved };
+      } catch {}
+    }
+
+    function persistHistory() {
+      try { localStorage.setItem("dual_ai_engine_history", JSON.stringify(state.hist.slice(0, 25))); } catch {}
+    }
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem("dual_ai_engine_history");
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved)) state.hist = saved;
+      } catch {}
+    }
+
+    function syncConfigInputs() {
+      els.openaiKeyInput.value = state.config.openaiKey;
+      els.anthropicKeyInput.value = state.config.anthropicKey;
+      els.openaiEndpointInput.value = state.config.openaiEndpoint;
+      els.anthropicEndpointInput.value = state.config.anthropicEndpoint;
+      els.rememberKeysCheckbox.checked = !!state.config.remember;
+      els.openaiKeyRuntime.value = state.config.openaiKey;
+      els.anthropicKeyRuntime.value = state.config.anthropicKey;
+      els.openaiEndpointRuntime.value = state.config.openaiEndpoint;
+      els.anthropicEndpointRuntime.value = state.config.anthropicEndpoint;
+    }
+
+    function setupDomainChips() {
+      els.domainChips.innerHTML = "";
+      Object.entries(DOMAIN_PROFILES).forEach(([key, profile]) => {
+        const btn = document.createElement("button");
+        btn.className = `btn-chip${state.domain === key ? ' active' : ''}`;
+        btn.textContent = profile.label;
+        btn.addEventListener("click", () => {
+          state.domain = key;
+          render();
+        });
+        els.domainChips.appendChild(btn);
+      });
+    }
+
+    function renderPipeline() {
+      if (state.stage < 0) {
+        els.pipeline.classList.add("hidden");
+        els.pipeline.innerHTML = "";
+        return;
+      }
+      els.pipeline.classList.remove("hidden");
+      els.pipeline.innerHTML = STAGES.map((s, i) => {
+        const active = i === state.stage && state.isRunning;
+        const done = i < state.stage || state.stage >= 5;
+        const skip = s.id === "followup" && state.sr.followup?.skipped;
+        const cls = active ? "stage active" : done ? (skip ? "stage done skip" : "stage done") : "stage";
+        const icon = active ? "⟳" : done ? (skip ? "–" : "✓") : s.icon;
+        return `<div class="${cls}"><span>${icon}</span><span>${s.label}${skip ? ' (skip)' : ''}</span></div>`;
+      }).join("");
+    }
+
+    function renderOutput() {
+      const hasOutput = !!state.output;
+      els.outputSection.classList.toggle("hidden", !hasOutput);
+      if (hasOutput) els.outputBody.innerHTML = formatText(state.output);
+    }
+
+    function renderScorecard() {
+      const ev = state.sr.evaluate || {};
+      const visible = state.showSC && ev.response_a && ev.response_b;
+      els.scorecardSection.classList.toggle("hidden", !visible);
+      if (!visible) { els.scorecardSection.innerHTML = ""; return; }
+
+      const rows = EVAL_DIMENSIONS.map(dim => {
+        const aD = ev.response_a?.dimensions?.find(d => d.name === dim.name);
+        const bD = ev.response_b?.dimensions?.find(d => d.name === dim.name);
+        const aV = typeof aD?.score === "number" ? aD.score : "–";
+        const bV = typeof bD?.score === "number" ? bD.score : "–";
+        const aWin = typeof aV === "number" && typeof bV === "number" && aV > bV;
+        const bWin = typeof aV === "number" && typeof bV === "number" && bV > aV;
+        return `
+          <div class="score-cell">${dim.label}</div>
+          <div class="score-cell" style="color:var(--dim)">${dim.weight}%</div>
+          <div class="score-cell" style="text-align:center" class="${aWin ? 'score-win' : ''}"><span class="${aWin ? 'score-win' : ''}">${aV}/5</span></div>
+          <div class="score-cell" style="text-align:center"><span class="${bWin ? 'score-win' : ''}">${bV}/5</span></div>`;
+      }).join("");
+
+      const failureRows = [];
+      (ev.response_a?.failure_modes || []).forEach(f => { if (f.detected) failureRows.push({ ...f, src: ms("A") }); });
+      (ev.response_b?.failure_modes || []).forEach(f => { if (f.detected) failureRows.push({ ...f, src: ms("B") }); });
+      const failureHtml = failureRows.length
+        ? `<div class="failure-title">Detected Failure Modes</div>${failureRows.map(f => `<div class="failure-row"><strong style="min-width:54px">${escapeHtml(f.src)}</strong><span class="mono">${escapeHtml(f.name)}</span><span style="text-transform:uppercase;font-size:10px;font-weight:700;color:${f.severity === 'critical' ? '#ef4444' : f.severity === 'high' ? '#f97316' : '#cbd5e1'}">${escapeHtml(f.severity)}</span><span>— ${escapeHtml(f.rationale || '')}</span></div>`).join("")}`
+        : `<div style="margin-top:12px;color:var(--success);font-size:12px">No failure modes detected</div>`;
+
+      const aScore = ev.response_a?.weighted_score || 0;
+      const bScore = ev.response_b?.weighted_score || 0;
+      const aVerdict = getVerdict(aScore);
+      const bVerdict = getVerdict(bScore);
+      const winner = ev.overall_winner === "tie" ? "Tie" : ms(ev.overall_winner);
+
+      els.scorecardSection.innerHTML = `
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Evaluation Matrix Scorecard</div></div>
+          <div class="panel-body">
+            <div class="score-grid">
+              <div class="score-head">Dimension</div>
+              <div class="score-head">Wt</div>
+              <div class="score-head" style="text-align:center">${ms("A")}</div>
+              <div class="score-head" style="text-align:center">${ms("B")}</div>
+              ${rows}
+            </div>
+
+            ${scoreBarHtml(ms("A"), aScore, aVerdict)}
+            ${scoreBarHtml(ms("B"), bScore, bVerdict)}
+            ${failureHtml}
+
+            <div class="winner-box">Winner: <strong>${escapeHtml(winner)}</strong>${ev.adjudication_rationale ? ` <span style="color:var(--muted)">— ${escapeHtml(ev.adjudication_rationale)}</span>` : ''}</div>
+          </div>
+        </div>`;
+    }
+
+    function scoreBarHtml(label, score, verdict) {
+      const pct = Math.min(100, ((score || 0) / 5) * 100);
+      return `
+        <div class="score-bar">
+          <div class="row-between" style="margin-bottom:4px">
+            <span style="font-size:12px">${escapeHtml(label)}</span>
+            <span style="font-size:12px;color:${verdict.color};font-weight:700">${(score || 0).toFixed(2)}/5 — ${escapeHtml(verdict.label)}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${verdict.color}"></div></div>
+        </div>`;
+    }
+
+    function renderBlackbox() {
+      const ev = state.sr.evaluate || {};
+      const visible = state.showBB && state.sr.dispatch;
+      els.blackboxSection.classList.toggle("hidden", !visible);
+      if (!visible) { els.blackboxSection.innerHTML = ""; return; }
+
+      const contradictions = (ev.contradictions || []).map(c => `
+        <div class="card">
+          <div style="font-weight:700;margin-bottom:4px">${escapeHtml(c.point || '')}</div>
+          <div style="color:var(--muted)">${ms("A")}: ${escapeHtml(c.a_says || '')}</div>
+          <div style="color:var(--muted)">${ms("B")}: ${escapeHtml(c.b_says || '')}</div>
+          <div style="margin-top:4px;color:var(--success)">→ ${escapeHtml(c.resolution || '')}</div>
+        </div>`).join("");
+
+      const gaps = (ev.gaps_both_missed || []).map(g => `<div style="font-size:12px;color:var(--muted);padding:2px 0">• ${escapeHtml(g)}</div>`).join("");
+      const followupVisible = state.sr.followup && !state.sr.followup.skipped;
+
+      els.blackboxSection.innerHTML = `
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">Pipeline Internals</div></div>
+          <div class="panel-body">
+            <div class="subtle">Domain: <strong style="color:var(--text)">${escapeHtml(state.sr.classify?.domain || '')}</strong> · Dispatch: ${escapeHtml(String(state.sr.dispatch.ms || 0))}ms</div>
+            <div class="mini-title">Parallel Responses</div>
+            <div class="bb-columns">
+              <div class="bb-col">
+                <div class="bb-col-head">Claude Sonnet 4</div>
+                <div class="bb-col-body formatted">${formatText(state.sr.dispatch.claude || '')}</div>
+              </div>
+              <div class="bb-col">
+                <div class="bb-col-head">GPT-4o</div>
+                <div class="bb-col-body formatted">${formatText(state.sr.dispatch.gpt || '')}</div>
+              </div>
+            </div>
+            ${followupVisible ? `
+              <div class="mini-title">Follow-up: “${escapeHtml(state.sr.followup.query || '')}”</div>
+              <div class="bb-columns">
+                <div class="bb-col">
+                  <div class="bb-col-head">Claude</div>
+                  <div class="bb-col-body formatted">${formatText(state.sr.followup.claude || '')}</div>
+                </div>
+                <div class="bb-col">
+                  <div class="bb-col-head">GPT-4o</div>
+                  <div class="bb-col-body formatted">${formatText(state.sr.followup.gpt || '')}</div>
+                </div>
+              </div>` : ''}
+            ${contradictions ? `<div class="mini-title">Contradictions</div>${contradictions}` : ''}
+            ${gaps ? `<div class="mini-title">Gaps Both Missed</div>${gaps}` : ''}
+          </div>
+        </div>`;
+    }
+
+    function renderHistory() {
+      els.historyCount.textContent = state.hist.length;
+      if (!state.hist.length) {
+        els.historyList.innerHTML = `<div class="panel"><div class="panel-body" style="text-align:center;color:var(--dim)">No queries yet</div></div>`;
+        return;
+      }
+      els.historyList.innerHTML = state.hist.map((h, i) => `
+        <div class="history-card" data-index="${i}">
+          <div class="row-between" style="margin-bottom:6px">
+            <span class="btn-chip active" style="cursor:default">${escapeHtml(DOMAIN_PROFILES[h.domain]?.label || h.domain)}</span>
+            <span class="subtle">${escapeHtml(new Date(h.ts).toLocaleString())}${h.tt ? ` · ${(h.tt / 1000).toFixed(1)}s` : ''}</span>
+          </div>
+          <div style="font-size:13px;color:#cbd5e1">${escapeHtml((h.query || '').slice(0, 180))}${(h.query || '').length > 180 ? '…' : ''}</div>
+        </div>`).join('');
+
+      Array.from(els.historyList.querySelectorAll('.history-card')).forEach(card => {
+        card.addEventListener('click', () => {
+          const item = state.hist[Number(card.dataset.index)];
+          if (!item) return;
+          state.query = item.query || '';
+          state.domain = item.domain || 'mixed';
+          els.queryInput.value = state.query;
+          switchTab('query');
+          render();
+        });
+      });
+    }
+
+    function renderErrorsAndNotes() {
+      els.errorBox.classList.toggle('hidden', !state.err);
+      els.errorBox.textContent = state.err || '';
+
+      const needsAnthropic = !state.config.anthropicKey && /^https:\/\/api\.anthropic\.com/i.test(state.config.anthropicEndpoint || '');
+      const note = needsAnthropic
+        ? 'Claude stages rely on an Anthropic key or a proxy that injects the required auth headers. Without that, classify, evaluator, and synthesis will fail at runtime.'
+        : '';
+      els.runtimeNote.classList.toggle('hidden', !note);
+      els.runtimeNote.textContent = note;
+    }
+
+    function renderTabs() {
+      const queryActive = state.tab === 'query';
+      els.tabQuery.classList.toggle('active', queryActive);
+      els.tabHistory.classList.toggle('active', !queryActive);
+      els.queryView.classList.toggle('hidden', !queryActive);
+      els.historyView.classList.toggle('hidden', queryActive);
+    }
+
+    function renderButtons() {
+      els.runBtn.disabled = state.isRunning || !String(els.queryInput.value || '').trim();
+      els.runBtn.textContent = state.isRunning ? 'Processing...' : 'Run Pipeline';
+      els.toggleScorecardBtn.textContent = state.showSC ? 'Hide Scorecard' : 'Show Scorecard';
+      els.toggleBlackboxBtn.textContent = state.showBB ? 'Hide Blackbox' : 'Show Blackbox';
+    }
+
+    function render() {
+      setupDomainChips();
+      renderPipeline();
+      renderOutput();
+      renderScorecard();
+      renderBlackbox();
+      renderHistory();
+      renderErrorsAndNotes();
+      renderTabs();
+      renderButtons();
+      syncConfigInputs();
+    }
+
+    function switchTab(tab) {
+      state.tab = tab;
+      render();
+    }
+
+    async function runPipeline() {
+      state.query = els.queryInput.value;
+      const query = String(state.query || '').trim();
+      if (!query || state.isRunning) return;
+
+      state.isRunning = true;
+      state.err = '';
+      state.output = '';
+      state.sr = {};
+      state.stage = 0;
+      state.showBB = false;
+      state.showSC = false;
+      render();
+
+      const t0 = Date.now();
+      try {
+        let dom = state.domain;
+        if (dom === 'mixed') {
+          const cl = await callClaude([
+            { role: 'user', content: `Classify into exactly one: technical, legal, reasoning_heavy, mixed. One word only.\n\n${query}` }
+          ], 'Task classifier. One word.', 20);
+          const cleaned = cl.trim().toLowerCase().replace(/[^a-z_]/g, '');
+          if (["technical", "legal", "reasoning_heavy", "mixed"].includes(cleaned)) dom = cleaned;
+        }
+        state.sr.classify = { domain: dom };
+        state.stage = 1;
+        render();
+
+        const sp = buildSpecialistPrompt(dom);
+        const um = [{ role: 'user', content: query }];
+        const dt = Date.now();
+        const [cR, gR] = await Promise.all([callClaude(um, sp), callOpenAI(um, sp)]);
+        state.sr.dispatch = { claude: cR, gpt: gR, ms: Date.now() - dt };
+        state.stage = 2;
+        render();
+
+        const coin = Math.random() > 0.5;
+        const [aR, bR, aS, bS] = coin ? [cR, gR, 'claude', 'gpt'] : [gR, cR, 'gpt', 'claude'];
+        const ePrompt = `Domain: ${dom}\n\nQuery:\n${query}\n\n--- Response A ---\n${aR}\n\n--- Response B ---\n${bR}`;
+        const eRaw = await callClaude([{ role: 'user', content: ePrompt }], EVALUATOR_SYSTEM, 6000);
+        const ev = parseEval(eRaw, { A: aS, B: bS });
+        state.sr.evaluate = ev;
+        state.stage = 3;
+        render();
+
+        let fu = null;
+        if (ev.follow_up_needed?.needed && ev.follow_up_needed?.query) {
+          const fq = ev.follow_up_needed.query;
+          const [fc, fg] = await Promise.all([
+            callClaude([{ role: 'user', content: fq }], sp, 2048),
+            callOpenAI([{ role: 'user', content: fq }], sp, 2048)
+          ]);
+          fu = { query: fq, claude: fc, gpt: fg };
+        }
+        state.sr.followup = fu || { skipped: true };
+        state.stage = 4;
+        render();
+
+        let synthInput = `Query:\n${query}\n\n--- A (${aS}) ---\n${aR}\n\n--- B (${bS}) ---\n${bR}\n\n--- Evaluation ---\n${JSON.stringify(ev, null, 2)}`;
+        if (fu) synthInput += `\n\n--- Follow-up ("${fu.query}") ---\n1: ${fu.claude}\n2: ${fu.gpt}`;
+        const syn = await callClaude([{ role: 'user', content: synthInput }], buildSynthesisPrompt(dom), 4096);
+
+        state.output = syn;
+        state.stage = 5;
+        state.hist.unshift({
+          query,
+          output: syn,
+          domain: dom,
+          ts: new Date().toISOString(),
+          ev,
+          tt: Date.now() - t0
+        });
+        state.hist = state.hist.slice(0, 25);
+        persistHistory();
+      } catch (error) {
+        state.err = error?.message || String(error);
+      } finally {
+        state.isRunning = false;
+        render();
+      }
+    }
+
+    function applySetupConfig(fromRuntime = false) {
+      if (fromRuntime) {
+        state.config.openaiKey = els.openaiKeyRuntime.value.trim();
+        state.config.anthropicKey = els.anthropicKeyRuntime.value.trim();
+        state.config.openaiEndpoint = els.openaiEndpointRuntime.value.trim() || DEFAULTS.openaiEndpoint;
+        state.config.anthropicEndpoint = els.anthropicEndpointRuntime.value.trim() || DEFAULTS.anthropicEndpoint;
+      } else {
+        state.config.openaiKey = els.openaiKeyInput.value.trim();
+        state.config.anthropicKey = els.anthropicKeyInput.value.trim();
+        state.config.openaiEndpoint = els.openaiEndpointInput.value.trim() || DEFAULTS.openaiEndpoint;
+        state.config.anthropicEndpoint = els.anthropicEndpointInput.value.trim() || DEFAULTS.anthropicEndpoint;
+        state.config.remember = !!els.rememberKeysCheckbox.checked;
+      }
+      persistConfig();
+      render();
+    }
+
+    function enterApp() {
+      els.setupScreen.classList.add('hidden');
+      els.appScreen.classList.remove('hidden');
+      render();
+    }
+
+    function leaveApp(clearKeys = false) {
+      if (clearKeys) {
+        state.config.openaiKey = '';
+        state.config.anthropicKey = '';
+        state.config.remember = false;
+        persistConfig();
+      }
+      syncConfigInputs();
+      els.appScreen.classList.add('hidden');
+      els.setupScreen.classList.remove('hidden');
+    }
+
+    function bindEls() {
+      [
+        'setupScreen','appScreen','openaiKeyInput','anthropicKeyInput','openaiEndpointInput','anthropicEndpointInput','rememberKeysCheckbox','initBtn',
+        'settingsBtn','resetBtn','tabQuery','tabHistory','settingsPanel','openaiKeyRuntime','anthropicKeyRuntime','openaiEndpointRuntime','anthropicEndpointRuntime','saveSettingsBtn',
+        'domainChips','queryInput','runBtn','pipeline','errorBox','runtimeNote','outputSection','outputBody','toggleScorecardBtn','toggleBlackboxBtn','scorecardSection','blackboxSection',
+        'historyView','queryView','historyList','historyCount'
+      ].forEach(id => els[id] = document.getElementById(id));
+    }
+
+    function bindEvents() {
+      els.initBtn.addEventListener('click', () => {
+        applySetupConfig(false);
+        enterApp();
+      });
+      [els.openaiKeyInput, els.anthropicKeyInput].forEach(input => input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          applySetupConfig(false);
+          enterApp();
+        }
+      }));
+      els.settingsBtn.addEventListener('click', () => els.settingsPanel.classList.toggle('hidden'));
+      els.saveSettingsBtn.addEventListener('click', () => {
+        applySetupConfig(true);
+        els.settingsPanel.classList.add('hidden');
+      });
+      els.resetBtn.addEventListener('click', () => leaveApp(true));
+      els.tabQuery.addEventListener('click', () => switchTab('query'));
+      els.tabHistory.addEventListener('click', () => switchTab('history'));
+      els.runBtn.addEventListener('click', runPipeline);
+      els.queryInput.addEventListener('input', () => {
+        state.query = els.queryInput.value;
+        renderButtons();
+      });
+      els.queryInput.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') runPipeline();
+      });
+      els.toggleScorecardBtn.addEventListener('click', () => {
+        state.showSC = !state.showSC;
+        render();
+      });
+      els.toggleBlackboxBtn.addEventListener('click', () => {
+        state.showBB = !state.showBB;
+        render();
+      });
+    }
+
+    function init() {
+      bindEls();
+      loadPersistedConfig();
+      loadHistory();
+      bindEvents();
+      els.queryInput.value = state.query;
+      syncConfigInputs();
+      if (state.config.openaiKey || state.config.anthropicKey) {
+        enterApp();
+      } else {
+        render();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
       color-scheme: dark;
       --bg: #020617;
       --panel: #0f172a;
