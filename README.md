@@ -77,4 +77,4 @@ The engine scores AI responses across 8 weighted dimensions:
 
 Open `public/index.html` directly in a browser. The app loads React and Babel from CDN — no build step required.
 
-Set API keys when prompted in the application UI.
+When prompted in the application UI, enter your OpenAI API key. Anthropic/Claude API keys are not currently configured via the UI.
