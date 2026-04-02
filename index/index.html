@@ -475,7 +475,7 @@
     .history-chip { cursor: default; }
     .history-query { font-size: 13px; color: #cbd5e1; }
     .empty-message { text-align: center; color: var(--dim); }
-    .gap-spacer { height: 6px; }
+    .content-gap { height: 6px; }
     .bb-strong { color: var(--text); }
     .proxy-note { margin: 0; }
   </style>
@@ -791,7 +791,7 @@
           })
         });
       } catch (err) {
-        if (err.name === "AbortError") throw new Error("Claude request timed out.");
+        if (err.name === "AbortError") throw new Error(`Claude request timed out after ${CONFIG.API_TIMEOUT_MS / 1000}s.`);
         throw err;
       }
       if (!r.ok) throw new Error(`Claude ${r.status}: ${await safeText(r)}`);
@@ -814,7 +814,7 @@
           })
         });
       } catch (err) {
-        if (err.name === "AbortError") throw new Error("OpenAI request timed out.");
+        if (err.name === "AbortError") throw new Error(`OpenAI request timed out after ${CONFIG.API_TIMEOUT_MS / 1000}s.`);
         throw err;
       }
       if (!r.ok) throw new Error(`OpenAI ${r.status}: ${await safeText(r)}`);
@@ -876,7 +876,7 @@
           html += `<li>${renderInline(line.replace(/^[-*]\s+/, "").replace(/^\d+\.\s+/, ""))}</li>`;
         } else if (!line.trim()) {
           closeList();
-          html += `<div class="gap-spacer"></div>`;
+          html += `<div class="content-gap"></div>`;
         } else {
           closeList();
           html += `<p>${renderInline(line)}</p>`;
