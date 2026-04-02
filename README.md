@@ -21,7 +21,7 @@ controller/
 │       ├── CheckpointResult.json         # Checkpoint pass/fail status
 │       ├── ControllerDecision.json       # Capability selection + execution params
 │       ├── ExecutionTraceItem.json        # Step-by-step execution log
-│       ├── FormalDecision.json           # Formal decision template (14 required fields)
+│       ├── FormalDecision.json           # Formal decision template
 │       ├── MetaControllerInput.json      # Input validation schema
 │       ├── MetaControllerOutput.json     # Full pipeline output (8 nested types)
 │       └── TaskClassification.json       # Task type + risk + output classification
