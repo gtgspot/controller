@@ -8,7 +8,7 @@ A meta-controller system that orchestrates dual-AI text analysis using Claude an
 controller/
 ├── package.json                          # Dependency management
 ├── public/
-│   └── index.html                        # Static HTML template/assets served by Vite (not standalone/CDN entrypoint)
+│   └── index.html                        # Standalone HTML app (loads React 18 + Babel from CDN)
 ├── schemas/
 │   ├── CapabilityDefinitions.json        # Master schema: 15 capability specifications
 │   ├── enums/                            # Simple enum type schemas
@@ -75,9 +75,6 @@ The engine scores AI responses across 8 weighted dimensions:
 
 ## Getting Started
 
-```bash
-npm install
-npm run dev
-```
+Open `public/index.html` directly in a browser. The app loads React and Babel from CDN — no build step required.
 
 Set API keys when prompted in the application UI.
