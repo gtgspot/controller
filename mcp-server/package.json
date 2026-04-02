@@ -1,0 +1,21 @@
+{
+  "name": "dual-ai-eval-mcp",
+  "version": "1.0.0",
+  "description": "Dual AI Evaluation MCP Server - dispatches queries to Claude and GPT for adversarial matrix evaluation",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "openai": "^4.85.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
