@@ -3,7 +3,14 @@
     "allow": [
       "Read",
       "Edit",
-      "Bash"
+      "Bash",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git checkout*)",
+      "Bash(gh issue*)",
+      "Bash(gh pr*)"
     ]
   }
 }
