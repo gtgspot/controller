@@ -553,26 +553,7 @@
         <div class="panel">
           <div class="panel-head"><div class="panel-title">Runtime Settings</div></div>
           <div class="panel-body">
-            <div class="grid-2">
-              <div class="field">
-                <label class="label" for="openaiKeyRuntime">OpenAI API Key</label>
-                <input id="openaiKeyRuntime" class="input mono" type="password" aria-label="OpenAI API key" autocomplete="off" />
-              </div>
-              <div class="field">
-                <label class="label" for="anthropicKeyRuntime">Anthropic API Key</label>
-                <input id="anthropicKeyRuntime" class="input mono" type="password" aria-label="Anthropic API key" autocomplete="off" />
-              </div>
-            </div>
-            <div class="grid-2">
-              <div class="field">
-                <label class="label" for="openaiEndpointRuntime">OpenAI Endpoint</label>
-                <input id="openaiEndpointRuntime" class="input mono" type="url" aria-label="OpenAI endpoint URL" autocomplete="off" />
-              </div>
-              <div class="field">
-                <label class="label" for="anthropicEndpointRuntime">Anthropic Endpoint</label>
-                <input id="anthropicEndpointRuntime" class="input mono" type="url" aria-label="Anthropic endpoint URL" autocomplete="off" />
-              </div>
-            </div>
+            <div id="configFieldsRuntime"></div>
             <div class="row-between">
               <span class="subtle">Update runtime credentials or swap endpoints to your own proxy routes.</span>
               <button id="saveSettingsBtn" class="btn-primary" aria-label="Save runtime settings">Save Settings</button>
@@ -1356,7 +1337,7 @@
         }
       }));
       els.settingsBtn.addEventListener('click', () => {
-        const isNowVisible = els.settingsPanel.classList.toggle('hidden') === false;
+        const isNowVisible = !els.settingsPanel.classList.toggle('hidden');
         els.settingsBtn.setAttribute('aria-expanded', String(isNowVisible));
       });
       els.saveSettingsBtn.addEventListener('click', () => {
@@ -1385,6 +1366,7 @@
     }
 
     function init() {
+      document.getElementById('configFieldsRuntime').innerHTML = renderConfigFormFields('Runtime');
       bindEls();
       loadPersistedConfig();
       loadHistory();
