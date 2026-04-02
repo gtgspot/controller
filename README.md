@@ -8,7 +8,7 @@ A meta-controller system that orchestrates dual-AI text analysis using Claude an
 controller/
 ├── package.json                          # Dependency management
 ├── public/
-│   └── index.html                        # HTML entry point (standalone, CDN-based)
+│   └── index.html                        # Static HTML template/assets served by Vite (not standalone/CDN entrypoint)
 ├── schemas/
 │   ├── CapabilityDefinitions.json        # Master schema: 15 capability specifications
 │   ├── enums/                            # Simple enum type schemas
