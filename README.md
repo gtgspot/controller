@@ -2,6 +2,10 @@
 
 A meta-controller system that defines capability schemas, decision models, and provides both a standalone web UI and an MCP (Model Context Protocol) server for adversarial dual-AI evaluation.
 
+## 🚀 Quick Start
+
+**New to this project?** Start with [QUICKSTART.md](QUICKSTART.md) for a streamlined setup guide.
+
 ## Overview
 
 This repository contains:
