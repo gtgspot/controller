@@ -1,0 +1,18 @@
+{
+  "name": "controller",
+  "version": "1.0.0",
+  "description": "Meta-controller system — capability schemas, decision models, and dual-AI evaluation engine",
+  "private": true,
+  "workspaces": [
+    "mcp-server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=mcp-server",
+    "dev": "npm run dev --workspace=mcp-server",
+    "start": "npm run start --workspace=mcp-server",
+    "install:all": "npm install"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
