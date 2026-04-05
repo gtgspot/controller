@@ -4,12 +4,11 @@
 This is the **controller** repository — a meta-controller system that defines capability schemas, decision models, and a web-based UI for controller decisions.
 
 ## Repository Structure
-- **`*.json` (root level)**: Schema definitions for enums and domain objects (AdequacyStatus, Capability, ControllerDecision, FormalDecision, MetaControllerInput/Output, etc.)
+- **Root `*.json` files**: Schema definitions (AdequacyStatus, Capability, ControllerDecision, FormalDecision, MetaControllerInput/Output, etc.)
 - **`src/CapabilityDefinitions`**: Master specification for all 15 analytical capabilities
-- **`index/index.html`**: Standalone vanilla-JS HTML application (active, production-ready)
-- **`index/index.jsx`**: React module version of the application (deprecated, reference only)
-- **`mcp-server/`**: MCP server implementation with TypeScript
-- **`scripts/`**: Setup and utility scripts
+- **`index/index.html`**: Standalone vanilla-JS HTML application — production-ready, runs directly in a browser with no build step
+- **`index/index.jsx`**: React module version of the application — reference/UI experimentation code, not bundled in production
+- **`mcp-server/`**: MCP evaluation server — the primary buildable/deployable unit (Node.js + TypeScript)
 
 ## Key Concepts
 - **Capability**: Defines what the controller can do
@@ -50,9 +49,8 @@ npm run serve:html
 See [README.md](README.md) and [DEVELOPMENT.md](DEVELOPMENT.md) for detailed instructions.
 
 ## Working With This Repo
-- A root `package.json` provides orchestration scripts for setup, development, and build operations
-- JSON schema files are located at the root level and can be edited directly
-- The HTML app (`index/index.html`) runs standalone in a browser without any build step
-- The React JSX file (`index/index.jsx`) is deprecated and kept for reference only
-- The MCP server in `mcp-server/` uses TypeScript and can be developed with `npm run dev`
-- Use `npm run setup` for one-command environment initialization
+- A root `package.json` and `Makefile` are provided for build orchestration; see `DEVELOPMENT.md` for full instructions.
+- The HTML app (`index/index.html`) runs standalone in a browser — no build step required.
+- The React JSX file (`index/index.jsx`) is reference/UI experimentation code; it requires an external bundler (e.g. Vite) and is **not** bundled in production.
+- The MCP server in `mcp-server/` is the primary buildable/deployable unit; run `make install && make dev` or `cd mcp-server && npm install && npm run dev`.
+- JSON schema files can be edited directly at the root level or under `src/`.
