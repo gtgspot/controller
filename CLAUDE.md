@@ -30,14 +30,23 @@ A Model Context Protocol server that dispatches queries to Claude and GPT simult
 | `eval_score_single` | Score a single response against the matrix (no comparison) |
 | `eval_list_capabilities` | List all dimensions, failure modes, domains, and verdicts |
 
-### Local Development
+### Quick Start
 ```bash
-cd mcp-server
-npm install
+# Initial setup
+npm run setup
+
+# Configure API keys
 export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
+
+# Run MCP server
 npm run dev
+# OR serve the HTML UI
+npm run serve:html
 ```
+
+### Local Development
+See [README.md](README.md) and [DEVELOPMENT.md](DEVELOPMENT.md) for detailed instructions.
 
 ## Working With This Repo
 - A root `package.json` and `Makefile` are provided for build orchestration; see `DEVELOPMENT.md` for full instructions.
