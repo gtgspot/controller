@@ -4,11 +4,12 @@
 This is the **controller** repository — a meta-controller system that defines capability schemas, decision models, and a web-based UI for controller decisions.
 
 ## Repository Structure
-- **`schemas/enums/`**: Simple enum type schemas (AdequacyStatus, Capability, ConfidenceThreshold, DepthSetting, Materiality)
-- **`schemas/domain/`**: Complex object schemas (ControllerDecision, FormalDecision, MetaControllerInput/Output, etc.)
-- **`schemas/CapabilityDefinitions.json`**: Master specification for all 15 analytical capabilities
-- **`public/index.html`**: Standalone vanilla-JS HTML application
-- **`src/index.jsx`**: React module version of the application
+- **`*.json` (root level)**: Schema definitions for enums and domain objects (AdequacyStatus, Capability, ControllerDecision, FormalDecision, MetaControllerInput/Output, etc.)
+- **`src/CapabilityDefinitions`**: Master specification for all 15 analytical capabilities
+- **`index/index.html`**: Standalone vanilla-JS HTML application (active, production-ready)
+- **`index/index.jsx`**: React module version of the application (deprecated, reference only)
+- **`mcp-server/`**: MCP server implementation with TypeScript
+- **`scripts/`**: Setup and utility scripts
 
 ## Key Concepts
 - **Capability**: Defines what the controller can do
@@ -30,17 +31,28 @@ A Model Context Protocol server that dispatches queries to Claude and GPT simult
 | `eval_score_single` | Score a single response against the matrix (no comparison) |
 | `eval_list_capabilities` | List all dimensions, failure modes, domains, and verdicts |
 
-### Local Development
+### Quick Start
 ```bash
-cd mcp-server
-npm install
+# Initial setup
+npm run setup
+
+# Configure API keys
 export ANTHROPIC_API_KEY="sk-ant-..."
 export OPENAI_API_KEY="sk-..."
+
+# Run MCP server
 npm run dev
+# OR serve the HTML UI
+npm run serve:html
 ```
 
+### Local Development
+See [README.md](README.md) and [DEVELOPMENT.md](DEVELOPMENT.md) for detailed instructions.
+
 ## Working With This Repo
-- A root `package.json` is included for project metadata; the HTML app runs standalone in a browser.
-- JSON schema files can be edited directly in `schemas/`.
-- The React JSX file (`src/index.jsx`) would need a bundler to run in production.
-- The MCP server in `mcp-server/` uses TypeScript and can be run with `npm run dev`.
+- A root `package.json` provides orchestration scripts for setup, development, and build operations
+- JSON schema files are located at the root level and can be edited directly
+- The HTML app (`index/index.html`) runs standalone in a browser without any build step
+- The React JSX file (`index/index.jsx`) is deprecated and kept for reference only
+- The MCP server in `mcp-server/` uses TypeScript and can be developed with `npm run dev`
+- Use `npm run setup` for one-command environment initialization
