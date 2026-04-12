@@ -140,7 +140,7 @@ describe("determineVerdict()", () => {
     assert.equal(determineVerdict(mkScores(3.9), mkScores(1)), "both_fail");
   });
 
-  it("handles empty score arrays gracefully (divides by 0 → 0 average → both_fail)", () => {
+  it("handles empty score arrays gracefully (both averages are 0, below 4 → both_fail)", () => {
     assert.equal(determineVerdict([], []), "both_fail");
   });
 

@@ -156,14 +156,18 @@ Return ONLY valid JSON in this exact format:
   if (!jsonMatch) {
     return { scores: [], failureModes: [] };
   }
-  const parsed = JSON.parse(jsonMatch[0]) as {
-    scores?: DimensionScore[];
-    failure_modes?: string[];
-  };
-  return {
-    scores: parsed.scores ?? [],
-    failureModes: parsed.failure_modes ?? [],
-  };
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as {
+      scores?: DimensionScore[];
+      failure_modes?: string[];
+    };
+    return {
+      scores: parsed.scores ?? [],
+      failureModes: parsed.failure_modes ?? [],
+    };
+  } catch {
+    return { scores: [], failureModes: [] };
+  }
 }
 
 export function determineVerdict(
