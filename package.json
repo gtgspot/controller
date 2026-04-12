@@ -7,17 +7,8 @@
     "mcp-server"
   ],
   "scripts": {
-    "install:mcp": "cd mcp-server && npm install",
-    "dev": "cd mcp-server && npm run dev",
-    "build": "cd mcp-server && npm run build",
-    "start": "cd mcp-server && npm run start",
-    "clean": "rm -rf mcp-server/dist mcp-server/*.tsbuildinfo",
-    "lint": "cd mcp-server && npx tsc --noEmit"
-  },
-  "description": "Meta-controller system with capability schemas, decision models, and web UI",
-  "private": true,
-  "scripts": {
     "setup": "bash scripts/setup.sh",
+    "install:mcp": "cd mcp-server && npm install",
     "setup:mcp": "cd mcp-server && npm install",
     "dev": "npm run dev:mcp",
     "dev:mcp": "cd mcp-server && npm run dev",
@@ -28,7 +19,9 @@
     "serve:html": "python3 -m http.server 8000 --directory index",
     "validate:schemas": "node scripts/validate-schemas.js",
     "clean": "npm run clean:mcp",
-    "clean:mcp": "cd mcp-server && rm -rf node_modules dist"
+    "clean:mcp": "cd mcp-server && rm -rf node_modules dist",
+    "lint": "cd mcp-server && npx tsc --noEmit",
+    "test": "cd mcp-server && npm test"
   },
   "keywords": [
     "controller",
@@ -42,7 +35,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gtgspot/controller"
     "url": "https://github.com/gtgspot/controller.git"
   }
 }
