@@ -595,6 +595,8 @@ const DeliberationResultSchema = z.object({
   task: z.string(),
   completed: z.boolean(),
   agreement_reached: z.boolean(),
+  convergence_status: z.union([z.string(), z.null()]).optional(),
+  confidence_tier: z.union([z.string(), z.null()]).optional(),
   stop_reason: z.union([z.string(), z.null()]).optional(),
   turns_completed: z.number(),
   safety_events_count: z.number(),

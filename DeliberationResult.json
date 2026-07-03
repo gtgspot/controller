@@ -9,6 +9,8 @@
     "task": { "type": "string" },
     "completed": { "type": "boolean" },
     "agreement_reached": { "type": "boolean" },
+    "convergence_status": { "type": ["string", "null"] },
+    "confidence_tier": { "type": ["string", "null"] },
     "stop_reason": { "type": ["string", "null"] },
     "turns_completed": { "type": "integer" },
     "safety_events_count": { "type": "integer" },

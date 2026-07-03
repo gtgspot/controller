@@ -23,6 +23,8 @@ export interface DeliberationResult {
   task: string;
   completed: boolean;
   agreement_reached: boolean;
+  convergence_status?: string | null;
+  confidence_tier?: string | null;
   stop_reason?: string | null;
   turns_completed: number;
   safety_events_count: number;

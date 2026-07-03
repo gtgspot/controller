@@ -105,6 +105,18 @@ function snippet(text: string, max = 160): string {
  *
  * Pure: no I/O, no mutation of the input.
  */
+// Map the bridge's 4-tier confidence_tier (from the challenge gate) onto the
+// controller's ConfidenceThreshold enum. Returns undefined when absent.
+function convergenceConfidence(tier?: string | null): ConfidenceThreshold | undefined {
+  switch ((tier ?? "").toLowerCase()) {
+    case "high": return "high";
+    case "medium": return "medium";
+    case "low":
+    case "unresolved": return "low";
+    default: return undefined;
+  }
+}
+
 export function mapDeliberationToSemantic(
   result: DeliberationResult
 ): SemanticMapping {
@@ -123,7 +135,7 @@ export function mapDeliberationToSemantic(
     content: result.final_answer,
     materiality: "high",
     capability_source: CAPABILITY,
-    confidence: result.agreement_reached ? "high" : "medium",
+    confidence: convergenceConfidence(result.confidence_tier) ?? (result.agreement_reached ? "high" : "medium"),
   });
 
   // Optionally, one supporting finding per non-final turn (materiality "medium").
@@ -156,7 +168,7 @@ export function mapDeliberationToSemantic(
     {
       capability: CAPABILITY,
       status: result.completed ? "executed" : "failed",
-      note: `${result.turns_completed} turn(s) completed; agreement_reached=${result.agreement_reached}`,
+      note: `${result.turns_completed} turn(s); agreement=${result.agreement_reached}; convergence=${result.convergence_status ?? "n/a"}; confidence=${result.confidence_tier ?? "n/a"}`,
     },
   ];
 
@@ -170,14 +182,20 @@ export function mapDeliberationToSemantic(
     (!result.completed || /safe|safety|harm|block/i.test(stopReason));
 
   let adequacy_status: AdequacyStatus;
+  const convergence = (result.convergence_status ?? "").toLowerCase();
   if (safetyStop) {
     adequacy_status = "escalated";
-  } else if (result.agreement_reached && result.completed) {
-    adequacy_status = "adequate";
-  } else if (result.completed && !result.agreement_reached) {
-    adequacy_status = "partially_adequate";
-  } else {
+  } else if (!result.completed) {
     adequacy_status = "inadequate";
+  } else if (convergence) {
+    // Prefer the graded terminal convergence signal (challenge gate) over the boolean.
+    if (convergence === "converged") adequacy_status = "adequate";
+    else if (convergence === "partial" || convergence === "contested") adequacy_status = "partially_adequate";
+    else adequacy_status = "inadequate"; // "unresolved"
+  } else if (result.agreement_reached) {
+    adequacy_status = "adequate";
+  } else {
+    adequacy_status = "partially_adequate";
   }
 
   // --- unresolved -------------------------------------------------------------
