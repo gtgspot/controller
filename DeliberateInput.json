@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeliberateInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": { "type": "string", "minLength": 1 },
+    "objective": { "type": "string" },
+    "domain": { "type": "string" },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "mode": { "type": "string", "enum": ["standard", "deepseek_solo"] },
+    "max_iterations": { "type": "integer", "minimum": 1 },
+    "use_context": { "type": "boolean" },
+    "web_search_enabled": { "type": "boolean" },
+    "max_tokens": { "type": "integer" },
+    "final_max_tokens": { "type": "integer" }
+  }
+}

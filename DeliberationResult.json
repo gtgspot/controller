@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeliberationResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id","task","completed","agreement_reached","turns_completed","safety_events_count","final_answer","turns","cost_totals","by_provider","by_purpose"],
+  "properties": {
+    "run_id": { "type": "string" },
+    "task": { "type": "string" },
+    "completed": { "type": "boolean" },
+    "agreement_reached": { "type": "boolean" },
+    "stop_reason": { "type": ["string", "null"] },
+    "turns_completed": { "type": "integer" },
+    "safety_events_count": { "type": "integer" },
+    "final_answer": { "type": "string" },
+    "turns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "turn": { "type": "integer" },
+          "role": { "type": "string" },
+          "provider": { "type": "string" },
+          "content": { "type": "string" }
+        }
+      }
+    },
+    "cost_totals": { "type": "object" },
+    "by_provider": { "type": "object" },
+    "by_purpose": { "type": "object" },
+    "error": { "type": "string" }
+  }
+}

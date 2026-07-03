@@ -1,8 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import { mapDeliberationToSemantic } from "./deliberationMapper.js";
+
+const execFileAsync = promisify(execFile);
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -561,6 +566,11 @@ server.tool(
           description:
             "List all dimensions, failure modes, domains, and verdicts",
         },
+        {
+          name: "eval_deliberate",
+          description:
+            "Escalate a hard query to the multi-model bridge deliberator and map the result onto controller findings/trace/adequacy",
+        },
       ],
     };
 
@@ -569,6 +579,170 @@ server.tool(
         { type: "text" as const, text: JSON.stringify(capabilities, null, 2) },
       ],
     };
+  }
+);
+
+// 8. eval_deliberate
+//
+// Escalate a hard query to the external multi-model bridge deliberator
+// (Claude + ChatGPT + DeepSeek) and map its semantics-free result onto
+// controller findings / trace / adequacy via mapDeliberationToSemantic.
+//
+// Runtime validation of the bridge's DeliberationResult wire contract. Kept in
+// lockstep with DeliberationResult.json (root) and the generated types.
+const DeliberationResultSchema = z.object({
+  run_id: z.string(),
+  task: z.string(),
+  completed: z.boolean(),
+  agreement_reached: z.boolean(),
+  stop_reason: z.union([z.string(), z.null()]).optional(),
+  turns_completed: z.number(),
+  safety_events_count: z.number(),
+  final_answer: z.string(),
+  turns: z.array(
+    z.object({
+      turn: z.number().optional(),
+      role: z.string().optional(),
+      provider: z.string().optional(),
+      content: z.string().optional(),
+    })
+  ),
+  cost_totals: z.record(z.unknown()),
+  by_provider: z.record(z.unknown()),
+  by_purpose: z.record(z.unknown()),
+  error: z.string().optional(),
+});
+
+server.tool(
+  "eval_deliberate",
+  "Escalate a hard query to the multi-model bridge deliberator (Claude+ChatGPT+DeepSeek) and map the result onto controller findings/trace/adequacy",
+  {
+    text: z.string().describe("The hard query to deliberate on"),
+    objective: z.string().optional().describe("What a good answer must achieve"),
+    domain: z.string().optional().describe("Domain hint for the deliberator"),
+    constraints: z
+      .array(z.string())
+      .optional()
+      .describe("Hard constraints the answer must respect"),
+    mode: z
+      .enum(["standard", "deepseek_solo"])
+      .optional()
+      .describe("Deliberation mode"),
+    max_iterations: z
+      .number()
+      .optional()
+      .describe("Maximum deliberation rounds"),
+    max_tokens: z
+      .number()
+      .optional()
+      .describe("Per-turn token cap"),
+    final_max_tokens: z
+      .number()
+      .optional()
+      .describe("Token cap for the final synthesised answer"),
+    use_context: z
+      .boolean()
+      .optional()
+      .describe("Whether the bridge may use prior context"),
+    web_search_enabled: z
+      .boolean()
+      .optional()
+      .describe("Whether the bridge may perform web search"),
+  },
+  async (input) => {
+    const py = process.env.BRIDGE_PYTHON ?? "/Users/spot/bridge/.venv/bin/python";
+    const entry = process.env.BRIDGE_ENTRY ?? "/Users/spot/bridge/deliberate.py";
+
+    try {
+      const exec = execFileAsync(py, [entry], {
+        maxBuffer: 64 * 1024 * 1024,
+        timeout: 600000,
+        env: process.env,
+      });
+
+      // Feed the DeliberateInput JSON to the child over STDIN.
+      exec.child.stdin?.end(JSON.stringify(input));
+
+      const { stdout } = await exec;
+
+      // The bridge streams progress; the LAST non-empty stdout line is the
+      // JSON DeliberationResult.
+      const lines = stdout.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lastLine = lines[lines.length - 1];
+      if (!lastLine) {
+        throw new Error("bridge produced no output on stdout");
+      }
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(lastLine);
+      } catch (parseErr) {
+        throw new Error(
+          `failed to parse bridge output as JSON: ${(parseErr as Error).message}`
+        );
+      }
+
+      const result = DeliberationResultSchema.parse(parsed);
+      const semantic = mapDeliberationToSemantic(result);
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({ result, semantic }, null, 2),
+          },
+        ],
+      };
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException & {
+        stdout?: string;
+        stderr?: string;
+        code?: number | string;
+      };
+      // On a handled bridge failure, deliberate.py writes {"error": ...} to
+      // STDOUT (not stderr) then exits non-zero. execFile rejects on that exit,
+      // so recover the bridge's own diagnostic from the last non-empty stdout
+      // line rather than losing it behind the generic "Command failed" message.
+      let bridgeError: string | undefined;
+      if (typeof e?.stdout === "string" && e.stdout.length > 0) {
+        const lastOut = e.stdout
+          .split(/\r?\n/)
+          .filter((l) => l.trim().length > 0)
+          .pop();
+        if (lastOut) {
+          try {
+            const parsedErr = JSON.parse(lastOut) as { error?: unknown };
+            if (typeof parsedErr?.error === "string") {
+              bridgeError = parsedErr.error;
+            }
+          } catch {
+            // stdout tail was not JSON; leave bridgeError undefined.
+          }
+        }
+      }
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                error: "eval_deliberate_failed",
+                message: e?.message ?? String(err),
+                bridge_error: bridgeError,
+                code: e?.code,
+                stderr:
+                  typeof e?.stderr === "string" && e.stderr.length > 0
+                    ? e.stderr
+                    : undefined,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
   }
 );
 
